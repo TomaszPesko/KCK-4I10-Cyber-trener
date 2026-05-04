@@ -3,6 +3,7 @@ import os
 import cv2
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
+from PIL import Image, ImageTk
 
 DB_NAME = "series.db"
 
@@ -126,40 +127,93 @@ def select_perspective(series_id):
     if not file_path:
         return
 
-    window = tk.Toplevel()
-    window.title("Add")
+    cap = cv2.VideoCapture(file_path)
+    if not cap.isOpened():
+        messagebox.showerror("Error", "Cannot open video")
+        return
 
-    tk.Label(window, text="Type").grid(row=0, column=0)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    duration = total_frames / fps
+
+    window = tk.Toplevel()
+    window.title("Select Range")
+
+    video_label = tk.Label(window)
+    video_label.pack()
+
+    def show_frame(frame_idx):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+        ret, frame = cap.read()
+        if not ret:
+            return
+
+        frame = cv2.resize(frame, (600, 400))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        img = Image.fromarray(frame)
+        imgtk = ImageTk.PhotoImage(image=img)
+
+        video_label.imgtk = imgtk
+        video_label.configure(image=imgtk)
+
+    start_scale = tk.Scale(
+        window,
+        from_=0,
+        to=duration,
+        resolution=0.1,
+        orient="horizontal"
+    )
+    start_scale.pack(fill="x")
+
+    end_scale = tk.Scale(
+        window,
+        from_=0,
+        to=duration,
+        resolution=0.1,
+        orient="horizontal"
+    )
+    end_scale.set(duration)
+    end_scale.pack(fill="x")
+
+    def on_start_move(val):
+        frame = int(float(val) * fps)
+        show_frame(frame)
+
+    def on_end_move(val):
+        frame = int(float(val) * fps)
+        show_frame(frame)
+
+    start_scale.config(command=on_start_move)
+    end_scale.config(command=on_end_move)
+
     perspective = ttk.Combobox(window, values=["front", "side"])
     perspective.current(0)
-    perspective.grid(row=0, column=1)
-
-    tk.Label(window, text="Start").grid(row=1, column=0)
-    start_entry = tk.Entry(window)
-    start_entry.insert(0, "0")
-    start_entry.grid(row=1, column=1)
-
-    tk.Label(window, text="End").grid(row=2, column=0)
-    end_entry = tk.Entry(window)
-    end_entry.insert(0, "10")
-    end_entry.grid(row=2, column=1)
+    perspective.pack()
 
     def submit():
         try:
+            start_time = float(start_scale.get())
+            end_time = float(end_scale.get())
+
             add_perspective(
                 series_id,
                 file_path,
                 perspective.get(),
-                float(start_entry.get()),
-                float(end_entry.get())
+                start_time,
+                end_time
             )
+
+            cap.release()
             messagebox.showinfo("OK", "Saved")
             window.destroy()
+
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
-    tk.Button(window, text="Save", command=submit).grid(row=3, column=0, columnspan=2)
+    tk.Button(window, text="Save", command=submit).pack()
 
+    show_frame(0)
 
 def delete_window(series_id):
     window = tk.Toplevel()
