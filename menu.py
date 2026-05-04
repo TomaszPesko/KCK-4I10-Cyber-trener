@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -45,16 +46,17 @@ class TemplateWindow(QWidget):
         self.menu_wrapper.setFixedWidth(int(self.width() * 0.3))
 
         wrapper_layout = QVBoxLayout(self.menu_wrapper)
-        wrapper_layout.setContentsMargins(20, 20, 20, 20)
+        wrapper_layout.setContentsMargins(10, 20, 10, 20)
 
         self.menu_card = QFrame()
         self.menu_card.setObjectName("menuCard")
+        self.menu_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
 
         self.menu_layout = QVBoxLayout(self.menu_card)
-        self.menu_layout.setSpacing(15)
-        self.menu_layout.setContentsMargins(20, 20, 20, 20)
+        self.menu_layout.setSpacing(13)
+        self.menu_layout.setContentsMargins(13, 20, 13, 20)
 
-        wrapper_layout.addWidget(self.menu_card)
+        wrapper_layout.addWidget(self.menu_card, alignment=Qt.AlignTop)
 
         # ===== RIGHT CONTENT =====
         self.content = QFrame()
