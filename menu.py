@@ -1,14 +1,17 @@
 import sys
+
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QApplication,
-    QWidget,
-    QPushButton,
-    QLabel,
-    QVBoxLayout,
-    QHBoxLayout,
     QFrame,
+    QGraphicsBlurEffect,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt
 
 # ===== TEMPLATE =====
 
@@ -19,12 +22,22 @@ class TemplateWindow(QWidget):
 
         self.setWindowTitle("E-trener")
 
-        # rozmiar ~80% ekranu
         screen = QApplication.primaryScreen().geometry()
         self.resize(int(screen.width() * 0.8), int(screen.height() * 0.8))
 
+        # ===== BACKGROUND =====
+        self.bg_label = QLabel(self)
+        self.bg_label.setScaledContents(True)
+        pixmap = QPixmap("gui_background.jpeg")
+        self.bg_label.setPixmap(pixmap)
+
+        blur = QGraphicsBlurEffect()
+        blur.setBlurRadius(20)  # siła rozmycia
+        self.bg_label.setGraphicsEffect(blur)
+
         # ===== MAIN LAYOUT =====
-        main_layout = QHBoxLayout(self)
+        self.main_container = QWidget(self)
+        main_layout = QHBoxLayout(self.main_container)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         # ===== LEFT MENU (30%) =====
@@ -34,7 +47,6 @@ class TemplateWindow(QWidget):
         wrapper_layout = QVBoxLayout(self.menu_wrapper)
         wrapper_layout.setContentsMargins(20, 20, 20, 20)
 
-        # "card"
         self.menu_card = QFrame()
         self.menu_card.setObjectName("menuCard")
 
@@ -57,16 +69,16 @@ class TemplateWindow(QWidget):
         # ===== STYLE =====
         self.setStyleSheet("""
         QWidget {
-            background-color: #2b2b2b;
+            background: transparent;
         }
 
         #menuCard {
-            background-color: rgba(120, 110, 100, 180);
+            background-color: rgba(80, 80, 80, 200);
             border-radius: 20px;
         }
 
         QPushButton {
-            background-color: #5a4f4a;
+            background-color: rgba(60, 60, 60, 220);
             color: white;
             border-radius: 10px;
             padding: 10px;
@@ -79,20 +91,31 @@ class TemplateWindow(QWidget):
         }
 
         #contentArea {
-            background-color: #1e1e1e;
+            background-color: rgba(30, 30, 30, 220);
             border-radius: 10px;
         }
         """)
 
+    # ===== RESIZE =====
+    def resizeEvent(self, event):
+        self.bg_label.setGeometry(self.rect())
+        self.main_container.setGeometry(self.rect())
+        super().resizeEvent(event)
+
     # ===== API =====
 
     def add_menu_option(self, text, callback):
+        """
+        callback = funkcja pythonowa (np. lambda, metoda klasy)
+        """
         btn = QPushButton(text)
+
+        # ===== Qt signal-slot =====
         btn.clicked.connect(callback)
+
         self.menu_layout.addWidget(btn)
 
     def set_content(self, widget):
-        # wyczyść
         for i in reversed(range(self.content_layout.count())):
             self.content_layout.itemAt(i).widget().deleteLater()
 
@@ -110,9 +133,10 @@ class DemoApp(TemplateWindow):
         self.add_menu_option("Wczytaj serię", lambda: self.show_page("Wczytaj serię"))
         self.add_menu_option("Statystyki", lambda: self.show_page("Statystyki"))
         self.add_menu_option("Progres", lambda: self.show_page("Progres"))
+        self.add_menu_option("Nowe okno", self.open_new_window)
         self.add_menu_option("Wyjście", self.close)
 
-        self.show_page("Witaj")
+        self.show_page("Start")
 
     def show_page(self, text):
         page = QWidget()
@@ -125,6 +149,16 @@ class DemoApp(TemplateWindow):
         layout.addWidget(label)
 
         self.set_content(page)
+
+    def open_new_window(self):
+        self.new_window = QWidget()
+        self.new_window.setWindowTitle("Nowe okno")
+        self.new_window.resize(400, 300)
+
+        layout = QVBoxLayout(self.new_window)
+        layout.addWidget(QLabel("To jest nowe okno"))
+
+        self.new_window.show()
 
 
 # ===== START =====
