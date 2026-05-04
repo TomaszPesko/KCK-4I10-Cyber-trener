@@ -43,7 +43,9 @@ class TemplateWindow(QWidget):
 
         # ===== LEFT MENU (30%) =====
         self.menu_wrapper = QWidget()
-        self.menu_wrapper.setFixedWidth(int(self.width() * 0.3))
+        main_layout.addWidget(self.menu_wrapper, 3)
+        self.setMinimumSize(900, 600)
+        self.menu_wrapper.setMinimumWidth(220)
 
         wrapper_layout = QVBoxLayout(self.menu_wrapper)
         wrapper_layout.setContentsMargins(10, 20, 10, 20)
@@ -61,6 +63,7 @@ class TemplateWindow(QWidget):
         # ===== RIGHT CONTENT =====
         self.content = QFrame()
         self.content.setObjectName("contentArea")
+        main_layout.addWidget(self.content, 7)
 
         self.content_layout = QVBoxLayout(self.content)
         self.content_layout.setContentsMargins(20, 20, 20, 20)
@@ -100,8 +103,24 @@ class TemplateWindow(QWidget):
 
     # ===== RESIZE =====
     def resizeEvent(self, event):
+        w = self.width()
+        h = self.height()
+
+        # background + main container
         self.bg_label.setGeometry(self.rect())
         self.main_container.setGeometry(self.rect())
+
+        # ===== dynamiczne marginesy =====
+        pad_w = int(w * 0.02)
+        pad_h = int(h * 0.03)
+
+        # wrapper margins
+        wrapper_layout = self.menu_wrapper.layout()
+        wrapper_layout.setContentsMargins(pad_w, pad_h, pad_w, pad_h)
+
+        # menu inner margins
+        self.menu_layout.setContentsMargins(pad_w, pad_h, pad_w, pad_h)
+
         super().resizeEvent(event)
 
     # ===== API =====
