@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QSizePolicy,
+    QSplitter,
     QVBoxLayout,
     QWidget,
 )
@@ -26,26 +27,33 @@ class TemplateWindow(QWidget):
         screen = QApplication.primaryScreen().geometry()
         self.resize(int(screen.width() * 0.8), int(screen.height() * 0.8))
 
+        self.setMinimumSize(900, 600)
+
         # ===== BACKGROUND =====
         self.bg_label = QLabel(self)
         self.bg_label.setScaledContents(True)
+
         pixmap = QPixmap("gui_background.jpeg")
         self.bg_label.setPixmap(pixmap)
 
         blur = QGraphicsBlurEffect()
-        blur.setBlurRadius(20)  # siła rozmycia
+        blur.setBlurRadius(20)
         self.bg_label.setGraphicsEffect(blur)
 
-        # ===== MAIN LAYOUT =====
+        # ===== ROOT CONTAINER =====
         self.main_container = QWidget(self)
-        main_layout = QHBoxLayout(self.main_container)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout = QHBoxLayout(self.main_container)
+        root_layout.setContentsMargins(0, 0, 0, 0)
 
-        # ===== LEFT MENU (30%) =====
+        # ===== SPLITTER =====
+        self.splitter = QSplitter(Qt.Horizontal)
+
+        # ======================
+        # LEFT MENU
+        # ======================
         self.menu_wrapper = QWidget()
-        main_layout.addWidget(self.menu_wrapper, 3)
-        self.setMinimumSize(900, 600)
         self.menu_wrapper.setMinimumWidth(220)
+        self.menu_wrapper.setMaximumWidth(380)
 
         wrapper_layout = QVBoxLayout(self.menu_wrapper)
         wrapper_layout.setContentsMargins(10, 20, 10, 20)
@@ -55,21 +63,30 @@ class TemplateWindow(QWidget):
         self.menu_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
 
         self.menu_layout = QVBoxLayout(self.menu_card)
-        self.menu_layout.setSpacing(13)
-        self.menu_layout.setContentsMargins(13, 20, 13, 20)
+        self.menu_layout.setSpacing(8)
+        self.menu_layout.setContentsMargins(10, 15, 10, 15)
 
         wrapper_layout.addWidget(self.menu_card, alignment=Qt.AlignTop)
 
-        # ===== RIGHT CONTENT =====
+        # ======================
+        # RIGHT CONTENT
+        # ======================
         self.content = QFrame()
         self.content.setObjectName("contentArea")
-        main_layout.addWidget(self.content, 7)
 
         self.content_layout = QVBoxLayout(self.content)
         self.content_layout.setContentsMargins(20, 20, 20, 20)
 
-        main_layout.addWidget(self.menu_wrapper)
-        main_layout.addWidget(self.content)
+        # ===== SPLITTER SETUP =====
+        self.splitter.addWidget(self.menu_wrapper)
+        self.splitter.addWidget(self.content)
+
+        self.splitter.setStretchFactor(0, 3)  # menu
+        self.splitter.setStretchFactor(1, 7)  # content
+
+        self.splitter.setHandleWidth(6)
+
+        root_layout.addWidget(self.splitter)
 
         # ===== STYLE =====
         self.setStyleSheet("""
@@ -86,7 +103,7 @@ class TemplateWindow(QWidget):
             background-color: rgba(60, 60, 60, 220);
             color: white;
             border-radius: 10px;
-            padding: 10px;
+            padding: 6px;
             text-align: left;
         }
 
