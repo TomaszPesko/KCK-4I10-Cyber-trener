@@ -1,0 +1,203 @@
+\documentclass[11pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\geometry{margin=2.5cm}
+
+\title{TemplateWindow (PySide6) -- Dokumentacja klasy bazowej GUI}
+\author{E-trener}
+\date{}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{teal},
+    breaklines=true
+}
+
+\begin{document}
+
+\maketitle
+
+\section{Opis ogólny}
+
+\texttt{TemplateWindow} jest klasą bazową interfejsu graficznego opartą o PySide6 (Qt).
+Stanowi fundament aplikacji E-trener, zapewniając spójny i modularny układ UI.
+
+Klasa implementuje:
+\begin{itemize}
+    \item dynamiczne tło z efektem rozmycia,
+    \item panel boczny (menu),
+    \item obszar roboczy (content area),
+    \item responsywny layout oparty o QSplitter.
+\end{itemize}
+
+\section{Architektura interfejsu}
+
+Interfejs składa się z dwóch głównych części:
+
+\begin{itemize}
+    \item \textbf{Menu (lewa strona)} -- 30--40\% szerokości
+    \item \textbf{Content (prawa strona)} -- 60--70\% szerokości
+\end{itemize}
+
+Podział realizowany jest przez \texttt{QSplitter}, co umożliwia dynamiczną zmianę proporcji przez użytkownika.
+
+\section{Komponenty systemu}
+
+\subsection{Tło aplikacji}
+
+Tło implementowane jest jako \texttt{QLabel} z obrazem \texttt{gui\_background.jpeg}.
+Dodany jest efekt:
+
+\begin{itemize}
+    \item \texttt{QGraphicsBlurEffect} (rozmycie)
+\end{itemize}
+
+Cel:
+\begin{itemize}
+    \item poprawa estetyki UI,
+    \item separacja wizualna od treści,
+    \item efekt "glass UI".
+\end{itemize}
+
+\subsection{QSplitter}
+
+QSplitter odpowiada za:
+\begin{itemize}
+    \item podział menu i contentu,
+    \item dynamiczne skalowanie,
+    \item interaktywną zmianę szerokości paneli.
+\end{itemize}
+
+\begin{lstlisting}[language=Python]
+self.splitter.setStretchFactor(0, 3)
+self.splitter.setStretchFactor(1, 7)
+\end{lstlisting}
+
+\section{Panel menu}
+
+Menu składa się z hierarchii:
+
+\begin{lstlisting}
+menu_wrapper
+ └── menu_card
+      └── QPushButton
+\end{lstlisting}
+
+Właściwości:
+\begin{itemize}
+    \item minimalna szerokość: 220 px,
+    \item maksymalna szerokość: 380 px,
+    \item zaokrąglone rogi,
+    \item semi-transparentne tło,
+    \item dynamiczne dodawanie opcji.
+\end{itemize}
+
+\section{Obszar content}
+
+Obszar content jest dynamicznie podmieniany w zależności od aktywnego widoku.
+
+Może zawierać:
+\begin{itemize}
+    \item odtwarzanie wideo,
+    \item statystyki,
+    \item wykresy,
+    \item analizę ruchu.
+\end{itemize}
+
+\section{API klasy}
+
+\subsection{add\_menu\_option}
+
+Dodaje przycisk do menu.
+
+\textbf{Parametry:}
+\begin{itemize}
+    \item text -- etykieta przycisku,
+    \item callback -- funkcja wywoływana po kliknięciu.
+\end{itemize}
+
+\begin{lstlisting}[language=Python]
+self.add_menu_option("Dodaj serię", self.open_series)
+\end{lstlisting}
+
+Mechanizm oparty jest o system signal-slot Qt:
+
+\begin{lstlisting}[language=Python]
+btn.clicked.connect(callback)
+\end{lstlisting}
+
+\subsection{set\_content}
+
+Podmienia widok w panelu content.
+
+\textbf{Działanie:}
+\begin{itemize}
+    \item usuwa poprzedni widget,
+    \item wstawia nowy widget.
+\end{itemize}
+
+\section{Responsywność}
+
+Resize event:
+
+\begin{lstlisting}[language=Python]
+self.bg_label.setGeometry(self.rect())
+self.main_container.setGeometry(self.rect())
+\end{lstlisting}
+
+System automatycznie dopasowuje tło i layout do rozmiaru okna.
+
+\section{Stylowanie (QSS)}
+
+\subsection{Menu}
+
+\begin{lstlisting}
+background-color: rgba(80, 80, 80, 200);
+border-radius: 20px;
+\end{lstlisting}
+
+\subsection{Przyciski}
+
+\begin{lstlisting}
+background-color: rgba(60, 60, 60, 220);
+color: white;
+border-radius: 10px;
+padding: 6px;
+\end{lstlisting}
+
+\subsection{Hover}
+
+\begin{lstlisting}
+background-color: #00cc66;
+color: black;
+\end{lstlisting}
+
+\section{Zalety architektury}
+
+\begin{itemize}
+    \item brak ręcznego zarządzania layoutem,
+    \item pełna responsywność,
+    \item łatwe rozszerzanie UI,
+    \item separacja menu i contentu,
+    \item przygotowanie pod system wielu widoków.
+\end{itemize}
+
+\section{Możliwości rozszerzeń}
+
+\begin{itemize}
+    \item routing widoków (jak w SPA),
+    \item animacje przejść,
+    \item aktywny stan menu,
+    \item integracja OpenCV,
+    \item overlay AR,
+    \item system analizy ruchu.
+\end{itemize}
+
+\end{document}
