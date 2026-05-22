@@ -2,4 +2,6 @@ bin/
 target/
 .idea/
 .vscode/
-*.log
+.out
+.log
+.pdf
