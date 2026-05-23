@@ -1,4 +1,14 @@
-*.mp4
-*.db
+# Python cache and environments
+__pycache__/
+venv/
 
+# LaTeX and document compilation outputs
+*.aux
+*.out
+*.pdf
+*.log
+
+# Databases (ignores all .db files except test.db)
+*.db
+!test.db
 
