@@ -32,3 +32,73 @@
   Mimo że ćwiczenie jest stosunkowo proste, stanowi dobry punkt startowy do budowy systemu analizy ruchu. Pozwala skupić się na podstawowych aspektach detekcji pozycji ciała oraz identyfikacji błędów, bez konieczności obsługi skomplikowanych sekwencji ruchowych. 
 
   Jednocześnie jego prostota wymaga dokładniejszego podejścia do analizy jakości ruchu, co czyni je dobrym przypadkiem testowym. 
+
+
+
+# Instrukcja uruchomienia projektu
+
+Ten projekt wymaga Pythona w wersji 3.x oraz biblioteki PySide6 (Qt). Postępuj zgodnie z poniższymi krokami, aby poprawnie skonfigurować środowisko i uruchomić aplikację.
+
+## 🚀 Szybki start
+
+Wymagane jest posiadanie zainstalowanego Pythona oraz systemu zarządzania pakietami `pip`.
+
+### 1. Pobierz projekt
+Sklonuj repozytorium lub pobierz pliki projektu na swój dysk.
+
+### 2. Utwórz wirtualne środowisko (venv)
+Otwórz terminal w głównym folderze projektu i wpisz:
+    python3 -m venv venv
+
+### 3.Aktywuj środowisko wirtualne
+
+W zależności od Twojego systemu operacyjnego uruchom odpowiednią komendę:
+*   **Linux / macOS:**            source venv/bin/activate
+
+*   **Windows (Command Prompt):** venv\Scripts\activate
+
+*   **Windows (PowerShell):**     .\venv\Scripts\activate
+
+*Po aktywacji powinieneś zobaczyć oznaczenie `(venv)` na początku linii w terminalu.*
+
+### 4. Zainstaluj wymagane pakiety
+Zainstaluj automatycznie wszystkie zależności zapisane w pliku konfiguracyjnym:
+    pip install -r requirements.txt
+
+### 5. Wylaczenie srodowiska
+    
+
+# Instrukcja dla Deweloperów (Praca nad Projektem)
+
+Witaj w zespole! Aby zachować porządek w kodzie i unikać konfliktów między globalnymi pakietami (np. Conda `base`), zawsze pracujemy wewnątrz izolowanego środowiska wirtualnego.
+
+## 🛠️ Codzienna praca z kodem
+
+Zanim zaczniesz pisać kod lub uruchomisz edytor (np. VS Code, PyCharm), **zawsze upewnij się, że Twoje środowisko `venv` jest aktywne**.
+
+## Dodawanie nowych bibliotek (Zasada czystego requirements.txt)
+
+Jeśli w trakcie pisania kodu zaimportujesz nową zewnętrzną bibliotekę (np. do obsługi bazy danych czy wykresów):
+
+*   Zainstaluj ją wewnątrz aktywnego venv:
+       pip install nazwa_pakietu
+
+*   Zaktualizuj plik z zależnościami, aby inni deweloperzy oraz użytkownicy również go otrzymali:
+        pip freeze > requirements.txt
+
+*   Zgłoś plik requirements.txt do Gita razem ze swoimi zmianami w kodzie.
+
+# Czego NIE robić (Ważne!)
+
+*   Nigdy nie instaluj pakietów globalnie (base) podczas pracy nad tym projektem. Jeśli zapomnisz aktywować venv, polecenie pip freeze wyeksportuje setki Twoich prywatnych pakietów do pliku projektu.
+
+*   Nigdy nie dodawaj folderu venv/ do repozytorium Git. Środowisko wirtualne każdego programisty zawiera unikalne ścieżki systemowe. Folder venv/ powinien być zawsze dopisany do pliku .gitignore.
+
+# Struktura Projektu
+
+*  menu.py - Główny plik wejściowy aplikacji.
+
+*   requirements.txt - Lista zależności (generowana automatycznie).
+ 
+*   venv/ - Lokalny folder środowiska (Ignorowany przez Git)
+
