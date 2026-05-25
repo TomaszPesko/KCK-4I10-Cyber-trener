@@ -10,31 +10,42 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QSizePolicy,
-    QSplitter,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
 
-# ===== TEMPLATE =====
+
+class Screen:
+    """Klasa reprezentująca pojedynczy ekran aplikacji (Menu + Zawartość)."""
+
+    def __init__(self, content_widget: QWidget):
+        self.content_widget = content_widget
+        self.options = []  # Lista krotek: (tekst_przycisku, funkcja_callback)
+
+    def add_option(self, text: str, callback):
+        """Dodaje opcję do lewego menu dla tego konkretnego ekranu."""
+        self.options.append((text, callback))
 
 
-class TemplateWindow(QWidget):
-    def __init__(self):
+class AppWindow(QWidget):
+    """Główne okno-szablon działające jako silnik aplikacji z zablokowanym podziałem."""
+
+    def __init__(self, title="Aplikacja", bg_image_path="gui_background.jpeg"):
         super().__init__()
+        self.setWindowTitle(title)
 
-        self.setWindowTitle("E-trener")
-
-        screen = QApplication.primaryScreen().geometry()
-        self.resize(int(screen.width() * 0.8), int(screen.height() * 0.8))
-
+        screen_geom = QApplication.primaryScreen().geometry()
+        self.resize(int(screen_geom.width() * 0.8), int(screen_geom.height() * 0.8))
         self.setMinimumSize(900, 600)
+
+        self._screens = {}  # Słownik identyfikatorów ekranów
 
         # ===== BACKGROUND =====
         self.bg_label = QLabel(self)
         self.bg_label.setScaledContents(True)
-
-        pixmap = QPixmap("gui_background.jpeg")
-        self.bg_label.setPixmap(pixmap)
+        if bg_image_path:
+            self.bg_label.setPixmap(QPixmap(bg_image_path))
 
         blur = QGraphicsBlurEffect()
         blur.setBlurRadius(20)
@@ -45,164 +56,126 @@ class TemplateWindow(QWidget):
         root_layout = QHBoxLayout(self.main_container)
         root_layout.setContentsMargins(0, 0, 0, 0)
 
-        # ===== SPLITTER =====
-        self.splitter = QSplitter(Qt.Horizontal)
+        # ===== HORIZONTAL LAYOUT (Zamiast Splittera) =====
+        # Używamy zwykłego układu, dzięki czemu podział jest całkowicie zablokowany
+        self.split_layout = QHBoxLayout()
+        self.split_layout.setSpacing(10)  # Odstęp między menu a zawartością
+        root_layout.addLayout(self.split_layout)
 
         # ======================
-        # LEFT MENU
+        # LEFT MENU (Stacked)
         # ======================
         self.menu_wrapper = QWidget()
         self.menu_wrapper.setMinimumWidth(220)
         self.menu_wrapper.setMaximumWidth(380)
 
-        wrapper_layout = QVBoxLayout(self.menu_wrapper)
-        wrapper_layout.setContentsMargins(10, 20, 10, 20)
+        self.wrapper_layout = QVBoxLayout(self.menu_wrapper)
 
-        self.menu_card = QFrame()
-        self.menu_card.setObjectName("menuCard")
-        self.menu_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-
-        self.menu_layout = QVBoxLayout(self.menu_card)
-        self.menu_layout.setSpacing(8)
-        self.menu_layout.setContentsMargins(10, 15, 10, 15)
-
-        wrapper_layout.addWidget(self.menu_card, alignment=Qt.AlignTop)
+        # QStackedWidget dla paneli menu
+        self.menu_stack = QStackedWidget()
+        self.wrapper_layout.addWidget(self.menu_stack, alignment=Qt.AlignTop)
 
         # ======================
-        # RIGHT CONTENT
+        # RIGHT CONTENT (Stacked)
         # ======================
-        self.content = QFrame()
-        self.content.setObjectName("contentArea")
+        self.content_frame = QFrame()
+        self.content_frame.setObjectName("contentArea")
 
-        self.content_layout = QVBoxLayout(self.content)
+        self.content_layout = QVBoxLayout(self.content_frame)
         self.content_layout.setContentsMargins(20, 20, 20, 20)
 
-        # ===== SPLITTER SETUP =====
-        self.splitter.addWidget(self.menu_wrapper)
-        self.splitter.addWidget(self.content)
+        # QStackedWidget dla zawartości prawostronnej
+        self.content_stack = QStackedWidget()
+        self.content_layout.addWidget(self.content_stack)
 
-        self.splitter.setStretchFactor(0, 3)  # menu
-        self.splitter.setStretchFactor(1, 7)  # content
+        # ===== DODANIE DO UKŁADU Z PROPORCJAMI =====
+        # Proporcje 3:7 (Menu zajmuje 3 części, Treść zajmuje 7 części przestrzeni)
+        self.split_layout.addWidget(self.menu_wrapper, stretch=3)
+        self.split_layout.addWidget(self.content_frame, stretch=7)
 
-        self.splitter.setHandleWidth(6)
-
-        root_layout.addWidget(self.splitter)
-
-        # ===== STYLE =====
+        # ===== STYLESHEET =====
         self.setStyleSheet("""
-        QWidget {
-            background: transparent;
-        }
-
+        QWidget { background: transparent; }
         #menuCard {
             background-color: rgba(80, 80, 80, 200);
             border-radius: 20px;
         }
-
         QPushButton {
             background-color: rgba(60, 60, 60, 220);
             color: white;
             border-radius: 10px;
-            padding: 6px;
+            padding: 8px;
             text-align: left;
+            font-size: 14px;
         }
-
         QPushButton:hover {
             background-color: #00cc66;
             color: black;
         }
-
         #contentArea {
             background-color: rgba(30, 30, 30, 220);
             border-radius: 10px;
         }
         """)
 
-    # ===== RESIZE =====
     def resizeEvent(self, event):
-        w = self.width()
-        h = self.height()
-
-        # background + main container
         self.bg_label.setGeometry(self.rect())
         self.main_container.setGeometry(self.rect())
 
-        # ===== dynamiczne marginesy =====
-        pad_w = int(w * 0.02)
-        pad_h = int(h * 0.03)
+        w, h = self.width(), self.height()
+        pad_w, pad_h = int(w * 0.02), int(h * 0.03)
 
-        # wrapper margins
-        wrapper_layout = self.menu_wrapper.layout()
-        wrapper_layout.setContentsMargins(pad_w, pad_h, pad_w, pad_h)
+        self.wrapper_layout.setContentsMargins(pad_w, pad_h, pad_w, pad_h)
+        self.split_layout.setContentsMargins(pad_w, pad_h, pad_w, pad_h)
 
-        # menu inner margins
-        self.menu_layout.setContentsMargins(pad_w, pad_h, pad_w, pad_h)
+        # Aktualizacja marginesów we wszystkich wygenerowanych menu-cardach
+        for i in range(self.menu_stack.count()):
+            card = self.menu_stack.widget(i)
+            if card and card.layout():
+                card.layout().setContentsMargins(pad_w, pad_h, pad_w, pad_h)
 
         super().resizeEvent(event)
 
-    # ===== API =====
+    # ===== PUBLIC API =====
 
-    def add_menu_option(self, text, callback):
-        """
-        callback = funkcja pythonowa (np. lambda, metoda klasy)
-        """
-        btn = QPushButton(text)
+    def register_screen(self, name: str, screen: Screen):
+        """Rejestruje nowy ekran w aplikacji."""
+        menu_card = QFrame()
+        menu_card.setObjectName("menuCard")
+        menu_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
 
-        # ===== Qt signal-slot =====
-        btn.clicked.connect(callback)
+        card_layout = QVBoxLayout(menu_card)
+        card_layout.setSpacing(8)
 
-        self.menu_layout.addWidget(btn)
+        for text, callback in screen.options:
+            btn = QPushButton(text)
+            btn.clicked.connect(callback)
+            card_layout.addWidget(btn)
 
-    def set_content(self, widget):
-        for i in reversed(range(self.content_layout.count())):
-            self.content_layout.itemAt(i).widget().deleteLater()
+        self.menu_stack.addWidget(menu_card)
+        self.content_stack.addWidget(screen.content_widget)
 
-        self.content_layout.addWidget(widget)
+        # Zapamiętujemy indeks powiązany z nazwą ekranu
+        self._screens[name] = self.menu_stack.count() - 1
 
-
-# ===== DEMO =====
-
-
-class DemoApp(TemplateWindow):
-    def __init__(self):
-        super().__init__()
-
-        self.add_menu_option("Dodaj serię", lambda: self.show_page("Dodaj serię"))
-        self.add_menu_option("Wczytaj serię", lambda: self.show_page("Wczytaj serię"))
-        self.add_menu_option("Statystyki", lambda: self.show_page("Statystyki"))
-        self.add_menu_option("Progres", lambda: self.show_page("Progres"))
-        self.add_menu_option("Nowe okno", self.open_new_window)
-        self.add_menu_option("Wyjście", self.close)
-
-        self.show_page("Start")
-
-    def show_page(self, text):
-        page = QWidget()
-        layout = QVBoxLayout(page)
-
-        label = QLabel(text)
-        label.setStyleSheet("color: white; font-size: 24px;")
-        label.setAlignment(Qt.AlignCenter)
-
-        layout.addWidget(label)
-
-        self.set_content(page)
-
-    def open_new_window(self):
-        self.new_window = QWidget()
-        self.new_window.setWindowTitle("Nowe okno")
-        self.new_window.resize(400, 300)
-
-        layout = QVBoxLayout(self.new_window)
-        layout.addWidget(QLabel("To jest nowe okno"))
-
-        self.new_window.show()
+    def switch_to_screen(self, name: str):
+        """Zmienia aktualnie wyświetlany ekran."""
+        if name in self._screens:
+            idx = self._screens[name]
+            self.menu_stack.setCurrentIndex(idx)
+            self.content_stack.setCurrentIndex(idx)
+        else:
+            print(f"Błąd: Ekran o nazwie '{name}' nie istnieje.")
 
 
-# ===== START =====
+# ===== PRZYKŁAD UŻYCIA (DEMO) =====
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = DemoApp()
-    window.show()
-    sys.exit(app.exec())
+
+def create_dummy_page(text, color="#00cc66"):
+    page = QWidget()
+    layout = QVBoxLayout(page)
+    label = QLabel(text)
+    label.setStyleSheet(f"color: {color}; font-size: 28px; font-weight: bold;")
+    label.setAlignment(Qt.AlignCenter)
+    layout.addWidget(label)
+    return page

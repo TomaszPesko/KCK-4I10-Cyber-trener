@@ -1,203 +1,154 @@
-\documentclass[11pt]{article}
-
+\documentclass[a4paper,12pt]{article}
 \usepackage[utf8]{inputenc}
-\usepackage{geometry}
+\usepackage[polish]{babel}
+\usepackage[T1]{fontenc}
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{geometry}
 
 \geometry{margin=2.5cm}
 
-\title{TemplateWindow (PySide6) -- Dokumentacja klasy bazowej GUI}
-\author{E-trener}
-\date{}
+% --- Konfiguracja wyglądu kodu (Python) ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
 
-\lstset{
-    basicstyle=\ttfamily\small,
-    keywordstyle=\color{blue},
-    commentstyle=\color{gray},
-    stringstyle=\color{teal},
-    breaklines=true
+\lstdefinestyle{pythonstyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4
 }
+\lstset{style=pythonstyle}
+
+\title{Dokumentacja Biblioteki GUI\\ (E-Trener Framework)}
+\author{Dokumentacja Techniczna}
+\date{\today}
 
 \begin{document}
 
 \maketitle
+\tableofcontents
+\newpage
 
-\section{Opis ogólny}
-
-\texttt{TemplateWindow} jest klasą bazową interfejsu graficznego opartą o PySide6 (Qt).
-Stanowi fundament aplikacji E-trener, zapewniając spójny i modularny układ UI.
-
-Klasa implementuje:
+\section{Wprowadzenie}
+Niniejsza dokumentacja opisuje prostą, reużywalną bibliotekę GUI opartą na architekturze \textbf{PySide6}. Framework został zaprojektowany z myślą o aplikacjach posiadających sztywny, dwukolumnowy układ:
 \begin{itemize}
-    \item dynamiczne tło z efektem rozmycia,
-    \item panel boczny (menu),
-    \item obszar roboczy (content area),
-    \item responsywny layout oparty o QSplitter.
+    \item \textbf{Lewa kolumna:} Dynamiczne menu boczny z opcjami (przyciskami).
+    \item \textbf{Prawa kolumna:} Główny panel zawartości (np. wykresy, formularze, odtwarzacz wideo).
 \end{itemize}
 
-\section{Architektura interfejsu}
+Biblioteka eliminuje potrzebę zamykania i otwierania nowych okien podczas nawigacji. Przełączanie między ekranami odbywa się wewnątrz jednego okna za pomocą mechanizmu \texttt{QStackedWidget}. Pasek podziału został zablokowany, dzięki czemu interfejs zachowuje stałe proporcje szerokości.
 
-Interfejs składa się z dwóch głównych części:
+\section{Główne Klasy API}
 
-\begin{itemize}
-    \item \textbf{Menu (lewa strona)} -- 30--40\% szerokości
-    \item \textbf{Content (prawa strona)} -- 60--70\% szerokości
-\end{itemize}
+\subsection{Klasa \texttt{Screen}}
+Klasa reprezentuje pojedynczy stan (widok) aplikacji. Składa się z kontenera na przyciski menu oraz przypisanego do nich widżetu zawartości.
 
-Podział realizowany jest przez \texttt{QSplitter}, co umożliwia dynamiczną zmianę proporcji przez użytkownika.
-
-\section{Komponenty systemu}
-
-\subsection{Tło aplikacji}
-
-Tło implementowane jest jako \texttt{QLabel} z obrazem \texttt{gui\_background.jpeg}.
-Dodany jest efekt:
-
-\begin{itemize}
-    \item \texttt{QGraphicsBlurEffect} (rozmycie)
-\end{itemize}
-
-Cel:
-\begin{itemize}
-    \item poprawa estetyki UI,
-    \item separacja wizualna od treści,
-    \item efekt "glass UI".
-\end{itemize}
-
-\subsection{QSplitter}
-
-QSplitter odpowiada za:
-\begin{itemize}
-    \item podział menu i contentu,
-    \item dynamiczne skalowanie,
-    \item interaktywną zmianę szerokości paneli.
-\end{itemize}
-
+\subsubsection*{Konstruktor}
 \begin{lstlisting}[language=Python]
-self.splitter.setStretchFactor(0, 3)
-self.splitter.setStretchFactor(1, 7)
+Screen(content_widget: QWidget)
 \end{lstlisting}
-
-\section{Panel menu}
-
-Menu składa się z hierarchii:
-
-\begin{lstlisting}
-menu_wrapper
- └── menu_card
-      └── QPushButton
-\end{lstlisting}
-
-Właściwości:
+\textbf{Argumenty:}
 \begin{itemize}
-    \item minimalna szerokość: 220 px,
-    \item maksymalna szerokość: 380 px,
-    \item zaokrąglone rogi,
-    \item semi-transparentne tło,
-    \item dynamiczne dodawanie opcji.
+    \item \texttt{content_widget} -- Dowolny obiekt klasy pochodnej od \texttt{QWidget}, który ma zostać wyświetlony po prawej stronie okna (np. panel z wykresem).
 \end{itemize}
 
-\section{Obszar content}
-
-Obszar content jest dynamicznie podmieniany w zależności od aktywnego widoku.
-
-Może zawierać:
+\subsubsection*{Metody}
 \begin{itemize}
-    \item odtwarzanie wideo,
-    \item statystyki,
-    \item wykresy,
-    \item analizę ruchu.
+    \item \texttt{add_option(text: str, callback: function)} -- Dodaje przycisk do menu bocznego dla tego konkretnego ekranu.
+    \begin{itemize}
+        \item \texttt{text} -- Napis wyświetlany na przycisku.
+        \item \texttt{callback} -- Referencja do funkcji języka Python (np. \texttt{lambda} lub metoda klasy), która zostanie wykonana po kliknięciu.
+    \end{itemize}
 \end{itemize}
 
-\section{API klasy}
+\subsection{Klasa \texttt{AppWindow}}
+Główne okno aplikacji, pełniące rolę silnika renderującego i menedżera widoków.
 
-\subsection{add\_menu\_option}
-
-Dodaje przycisk do menu.
-
-\textbf{Parametry:}
-\begin{itemize}
-    \item text -- etykieta przycisku,
-    \item callback -- funkcja wywoływana po kliknięciu.
-\end{itemize}
-
+\subsubsection*{Konstruktor}
 \begin{lstlisting}[language=Python]
-self.add_menu_option("Dodaj serię", self.open_series)
+AppWindow(title="Aplikacja", bg_image_path="gui_background.jpeg")
 \end{lstlisting}
-
-Mechanizm oparty jest o system signal-slot Qt:
-
-\begin{lstlisting}[language=Python]
-btn.clicked.connect(callback)
-\end{lstlisting}
-
-\subsection{set\_content}
-
-Podmienia widok w panelu content.
-
-\textbf{Działanie:}
+\textbf{Argumenty:}
 \begin{itemize}
-    \item usuwa poprzedni widget,
-    \item wstawia nowy widget.
+    \item \texttt{title} -- Tekst wyświetlany na pasku tytułowym okna.
+    \item \texttt{bg_image_path} -- Ścieżka do pliku graficznego tła (automatycznie rozmywanego efektem blur).
 \end{itemize}
 
-\section{Responsywność}
-
-Resize event:
-
-\begin{lstlisting}[language=Python]
-self.bg_label.setGeometry(self.rect())
-self.main_container.setGeometry(self.rect())
-\end{lstlisting}
-
-System automatycznie dopasowuje tło i layout do rozmiaru okna.
-
-\section{Stylowanie (QSS)}
-
-\subsection{Menu}
-
-\begin{lstlisting}
-background-color: rgba(80, 80, 80, 200);
-border-radius: 20px;
-\end{lstlisting}
-
-\subsection{Przyciski}
-
-\begin{lstlisting}
-background-color: rgba(60, 60, 60, 220);
-color: white;
-border-radius: 10px;
-padding: 6px;
-\end{lstlisting}
-
-\subsection{Hover}
-
-\begin{lstlisting}
-background-color: #00cc66;
-color: black;
-\end{lstlisting}
-
-\section{Zalety architektury}
-
+\subsubsection*{Metody publiczne}
 \begin{itemize}
-    \item brak ręcznego zarządzania layoutem,
-    \item pełna responsywność,
-    \item łatwe rozszerzanie UI,
-    \item separacja menu i contentu,
-    \item przygotowanie pod system wielu widoków.
+    \item \texttt{register_screen(name: str, screen: Screen)} -- Rejestruje obiekt ekranu pod unikalną nazwą tekstową i automatycznie generuje dla niego strukturę widżetów Qt.
+    \item \texttt{switch_to_screen(name: str)} -- Natychmiastowo podmienia zawartość lewego menu oraz prawego panelu na te zdefiniowane w ekranie o nazwie \texttt{name}.
+    \item \texttt{close()} -- Zamyka okno aplikacji (wbudowana metoda Qt, idealna jako callback dla przycisku "Wyjście").
 \end{itemize}
 
-\section{Możliwości rozszerzeń}
+\newpage
+\section{Przykład Użycia (Quick Start)}
 
+Poniższy kod prezentuje minimalny, działający przykład implementacji dwóch ekranów z możliwością płynnej nawigacji między nimi.
+
+\begin{lstlisting}[language=Python, caption=Przykład implementacji aplikacji za pomocą biblioteki]
+import sys
+from PySide6.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout
+from PySide6.QtCore import Qt
+from gui_lib import AppWindow, Screen 
+
+def create_page(text):
+    """Funkcja pomocnicza tworząca prosty widżet zawartości."""
+    page = QWidget()
+    layout = QVBoxLayout(page)
+    label = QLabel(text)
+    label.setStyleSheet("color: white; font-size: 22px;")
+    label.setAlignment(Qt.AlignCenter)
+    layout.addWidget(label)
+    return page
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    
+    # 1. Inicjalizacja głównego okna
+    window = AppWindow(title="E-Trener v2")
+
+    # 2. Definicja Ekranu 1 (Startowego)
+    start_content = create_page("Witaj w aplikacji!\nWybierz opcję z menu.")
+    screen_start = Screen(start_content)
+    screen_start.add_option("Panel Treningów", lambda: window.switch_to_screen("treningi"))
+    screen_start.add_option("Wyjście", window.close)
+    window.register_screen("start", screen_start)
+
+    # 3. Definicja Ekranu 2 (Menu Treningów)
+    training_content = create_page("Sekcja Treningowa\n[Miejsce na Wykres/Wideo]")
+    screen_training = Screen(training_content)
+    screen_training.add_option("Dodaj serię", lambda: print("Seria dodana!"))
+    screen_training.add_option("<- Powrót do menu", lambda: window.switch_to_screen("start"))
+    window.register_screen("treningi", screen_training)
+
+    # 4. Uruchomienie aplikacji
+    window.switch_to_screen("start")
+    window.show()
+    sys.exit(app.exec())
+\end{lstlisting}
+
+\section{Skalowanie i Wygląd}
 \begin{itemize}
-    \item routing widoków (jak w SPA),
-    \item animacje przejść,
-    \item aktywny stan menu,
-    \item integracja OpenCV,
-    \item overlay AR,
-    \item system analizy ruchu.
+    \item \textbf{Responsywność:} Okno uruchamia się domyślnie w rozmiarze stanowiącym $80\%$ rozdzielczości ekranu użytkownika, zachowując minimalny rozmiar bezpieczny ($900 \times 600$ pikseli). Dynamiczne marginesy są przeliczane podczas zdarzenia \texttt{resizeEvent}.
+    \item \textbf{Proporcje:} Podział okna jest ustalony w stosunku \textbf{3:7} (30\% szerokości dla menu bocznego, 70\% dla panelu treści).
+    \item \textbf{Style CSS:} Wygląd (m.in. efekt \textit{hover} na przyciskach, kolory rgba oraz zaokrąglenia krawędzi) zdefiniowany jest globalnie w arkuszu stylów wewnątrz klasy \texttt{AppWindow}.
 \end{itemize}
 
 \end{document}

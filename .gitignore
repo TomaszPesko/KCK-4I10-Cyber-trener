@@ -7,6 +7,7 @@ venv/
 *.out
 *.pdf
 *.log
+*.toc
 
 # Databases (ignores all .db files except test.db)
 *.db
