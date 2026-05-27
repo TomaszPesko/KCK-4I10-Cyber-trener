@@ -29,7 +29,7 @@
 
 7. Niewłaściwe ustawienie nóg (niestabilna pozycja)
 
-    Scenariusz powodzenia:
+   Scenariusz powodzenia:
   1. Użytkownik poprawnie ustawia kamerę oraz przyjmuje pozycję startową.
   2. System wykrywa sylwetkę i rozpoczyna analizę ruchu.
   3. Użytkownik wykonuje ćwiczenie:
@@ -41,7 +41,7 @@
 Rezultat:
 Użytkownik otrzymuje informację o poprawnym wykonaniu ćwiczenia oraz liczbę poprawnych powtórzeń.
 
-    Scenariusz niepowodzenia
+    Scenariusz niepowodzenia:
   1. Kamera jest ustawiona niepoprawnie lub sylwetka użytkownika znajduje się częściowo poza kadrem.
   2. System nie może dokładnie wykryć pozycji stawów.
   3. Analiza ruchu staje się niedokładna i pojawiają się błędne odczyty.
