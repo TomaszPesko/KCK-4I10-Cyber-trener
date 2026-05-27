@@ -27,7 +27,19 @@
 
 6. Brak kontroli ruchu (ruch zbyt szybki / szarpany)  
 
-7. Niewłaściwe ustawienie nóg (niestabilna pozycja) 
+7. Niewłaściwe ustawienie nóg (niestabilna pozycja)
+
+    Scenariusz powodzenia:
+  1. Użytkownik poprawnie ustawia kamerę oraz przyjmuje pozycję startową.
+  2. System wykrywa sylwetkę i rozpoczyna analizę ruchu.
+  3. Użytkownik wykonuje ćwiczenie:
+    - plecy pozostają blisko krzesła,
+    - łokcie prowadzone są do tyłu,
+    - zakres ruchu jest odpowiedni,
+    - ruch wykonywany jest płynnie.
+  4. System analizuje ruch i oznacza powtórzenia jako poprawne.
+Rezultat:
+Użytkownik otrzymuje informację o poprawnym wykonaniu ćwiczenia oraz liczbę poprawnych powtórzeń.
 
   Mimo że ćwiczenie jest stosunkowo proste, stanowi dobry punkt startowy do budowy systemu analizy ruchu. Pozwala skupić się na podstawowych aspektach detekcji pozycji ciała oraz identyfikacji błędów, bez konieczności obsługi skomplikowanych sekwencji ruchowych. 
 
