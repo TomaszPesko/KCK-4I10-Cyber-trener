@@ -2,6 +2,7 @@ import time
 from unittest.mock import Mock
 
 import pytest
+
 from src.dataStorageModule.DataStorageModule import *
 from src.include.set_data import *
 
@@ -12,7 +13,7 @@ def db_service():
     Fixture creating an instance of the database module in RAM (:memory:).
     Starts the thread before the test and ensures it closes properly after the test.
     """
-    service = DatabaseModule(db_path=":memory:")
+    service = DataStorageModule(db_path=":memory:")
     service.start()
 
     yield service

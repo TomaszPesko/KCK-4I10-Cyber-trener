@@ -1,88 +1,72 @@
-anaconda-anon-usage @ file:///opt/miniconda3/conda-bld/anaconda-anon-usage_1764636648062/work
-anaconda-auth @ file:///home/task_177249124085225/croot/anaconda-cloud-auth-split_1772491269211/work
-anaconda-cli-base @ file:///home/task_177038556646156/croot/anaconda-cli-base_1770385830159/work
-annotated-types @ file:///home/task_176174487847081/conda-bld/annotated-types_1761744928471/work
-anyio @ file:///home/task_175862240717140/conda-bld/anyio_1758622421932/work
-archspec @ file:///home/task_175812491784513/conda-bld/archspec_1758124989039/work
-audioop-lts==0.2.2
-boltons @ file:///croot/boltons_1751383775419/work
-brotlicffi @ file:///home/task_176496126124857/conda-bld/brotlicffi_1764961326114/work
-certifi @ file:///home/task_176765916174011/croot/certifi_1767659183877/work/certifi
-cffi @ file:///home/task_176183214835616/conda-bld/cffi_1761832774688/work
-charset-normalizer @ file:///home/task_176174481524083/conda-bld/charset-normalizer_1761744828711/work
-click @ file:///home/task_176433224228540/conda-bld/click_1764332256338/work
-conda @ file:///home/task_177140125005974/croot/conda_1771402194624/work/conda-src
-conda-anaconda-telemetry @ file:///croot/conda-anaconda-telemetry_1755883788794/work
-conda-anaconda-tos @ file:///croot/conda-anaconda-tos_1755123313635/work
-conda-content-trust @ file:///work/perseverance-python-buildout/croot/conda-content-trust_1728487058234/work
-conda-libmamba-solver @ file:///C:/miniconda3/conda-bld/conda-libmamba-solver_1764245615235/work/src
-conda-package-handling @ file:///home/task_176236637997838/conda-bld/conda-package-handling_1762366405159/work
-conda_package_streaming @ file:///home/task_176236152622180/conda-bld/conda-package-streaming_1762361633858/work
-cryptography @ file:///home/task_177247526678653/croot/cryptography-split_1772475308901/work
-distro @ file:///work/perseverance-python-buildout/croot/distro_1728396110052/work
-frozendict @ file:///home/task_176175049677026/conda-bld/frozendict_1761750665451/work
-h11 @ file:///home/task_176193111687894/conda-bld/h11_1761931259172/work
-httpcore @ file:///croot/httpcore_1748526048470/work
-httpx @ file:///home/task_176044729083783/conda-bld/httpx_1760447344657/work
-idna @ file:///home/task_176191175488988/conda-bld/idna_1761911981595/work
-iniconfig==2.3.0
-jaraco.classes @ file:///croot/jaraco.classes_1755516327832/work
-jaraco.context @ file:///home/task_176947759528748/croot/jaraco.context_1769477842447/work
-jaraco.functools @ file:///home/task_176838874890348/croot/jaraco.functools_1768389366336/work
-jeepney @ file:///tmp/build/80754af9/jeepney_1627537048313/work
-jsonpatch @ file:///work/perseverance-python-buildout/croot/jsonpatch_1728399595941/work
-jsonpointer @ file:///croot/jsonpointer_1753788433671/work
-keyring @ file:///home/task_176363713576885/conda-bld/keyring_1763637184857/work
-libmambapy @ file:///home/task_176311149180614/conda-bld/mamba-split_1763111570862/work/libmambapy
-markdown-it-py @ file:///home/task_176700162971740/croot/markdown-it-py_1767001650253/work
-mdurl @ file:///home/task_175855216352428/conda-bld/mdurl_1758552176751/work
-menuinst @ file:///home/task_176538230483207/conda-bld/menuinst_1765382366331/work
-more-itertools @ file:///home/task_176112148319406/conda-bld/more-itertools_1761121494880/work
-msgpack @ file:///croot/msgpack-python_1750958623279/work
-numpy==2.4.3
-opencv-python==4.13.0.92
-packaging @ file:///home/task_176104878999627/conda-bld/packaging_1761049078606/work
-pillow==12.2.0
-pkce @ file:///work/perseverance-python-buildout/croot/pkce_1728388093137/work
-platformdirs @ file:///home/task_176235602006708/conda-bld/platformdirs_1762356487962/work
-pluggy @ file:///croot/pluggy_1733169602837/work
-PyAudio==0.2.14
-pycosat @ file:///croot/pycosat_1736868416091/work
-pycparser @ file:///home/task_175749564936714/conda-bld/pycparser_1757496040682/work
-pydantic @ file:///home/task_176408303339170/conda-bld/pydantic_1764083529211/work
-pydantic-settings @ file:///home/task_176416496069032/conda-bld/pydantic-settings_1764165165402/work
-pydantic_core @ file:///home/task_176400924785639/conda-bld/pydantic-core_1764009747660/work
-Pygments @ file:///home/task_176243137807904/conda-bld/pygments_1762431407645/work
-PyJWT @ file:///home/task_176433208417911/conda-bld/pyjwt_1764332098101/work
-PySide6==6.11.0
-PySide6_Addons==6.11.0
-PySide6_Essentials==6.11.0
-PySocks @ file:///home/task_176175235884818/conda-bld/pysocks_1761753009495/work
-pytest==9.0.3
-python-dotenv @ file:///home/task_176855885656798/croot/python-dotenv_1768559688221/work
-pyttsx3==2.99
-readchar @ file:///home/task_176061336965958/conda-bld/readchar_1760613437376/work
-requests @ file:///home/task_176235918788486/conda-bld/requests_1762359591632/work
-rich @ file:///home/task_176037557612320/conda-bld/rich_1760375632000/work
-ruamel.yaml @ file:///home/task_176253595903435/conda-bld/ruamel.yaml_1762535972567/work
-ruamel.yaml.clib @ file:///home/task_176253026438192/conda-bld/ruamel.yaml.clib_1762530278005/work
-SecretStorage @ file:///home/task_175793143758247/conda-bld/secretstorage_1757931467244/work
-semver @ file:///home/task_176190313959014/conda-bld/semver_1761903196627/work
-setuptools==80.10.2
-shellingham @ file:///home/task_176191203629823/conda-bld/shellingham_1761912204430/work
-shiboken6==6.11.0
-sniffio @ file:///home/task_176432917442011/conda-bld/sniffio_1764329188237/work
-SpeechRecognition==3.16.0
-standard-aifc==3.13.0
-standard-chunk==3.13.0
-tomli @ file:///home/task_176829646049141/croot/tomli_1768296482268/work
-tomlkit @ file:///home/task_176289666312502/conda-bld/tomlkit_1762896676945/work
-tqdm @ file:///home/task_177139827237424/croot/tqdm_1771398701478/work
-truststore @ file:///home/task_176252074050774/conda-bld/truststore_1762520903993/work
-typer==0.20.0
-typer-slim==0.20.0
-typing-inspection @ file:///home/task_176061348700415/conda-bld/typing-inspection_1760614166875/work
-typing_extensions @ file:///croot/typing_extensions_1756280817316/work
-urllib3 @ file:///home/task_176781010304586/croot/urllib3_1767810267320/work
-wheel==0.46.3
-zstandard @ file:///home/task_175818846949212/conda-bld/zstandard_1758189073015/work
+colorama==0.4.6 ; python_version >= "3.10" and python_version < "4.0" and sys_platform == "win32" \
+    --hash=sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44 \
+    --hash=sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6
+exceptiongroup==1.3.1 ; python_version == "3.10" \
+    --hash=sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219 \
+    --hash=sha256:a7a39a3bd276781e98394987d3a5701d0c4edffb633bb7a5144577f82c773598
+iniconfig==2.3.0 ; python_version >= "3.10" and python_version < "4.0" \
+    --hash=sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730 \
+    --hash=sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12
+packaging==26.2 ; python_version >= "3.10" and python_version < "4.0" \
+    --hash=sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e \
+    --hash=sha256:ff452ff5a3e828ce110190feff1178bb1f2ea2281fa2075aadb987c2fb221661
+pluggy==1.6.0 ; python_version >= "3.10" and python_version < "4.0" \
+    --hash=sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3 \
+    --hash=sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746
+pygments==2.20.0 ; python_version >= "3.10" and python_version < "4.0" \
+    --hash=sha256:6757cd03768053ff99f3039c1a36d6c0aa0b263438fcab17520b30a303a82b5f \
+    --hash=sha256:81a9e26dd42fd28a23a2d169d86d7ac03b46e2f8b59ed4698fb4785f946d0176
+pytest==8.4.2 ; python_version >= "3.10" and python_version < "4.0" \
+    --hash=sha256:86c0d0b93306b961d58d62a4db4879f27fe25513d4b969df351abdddb3c30e01 \
+    --hash=sha256:872f880de3fc3a5bdc88a11b39c9710c3497a547cfa9320bc3c5e62fbf272e79
+tomli==2.4.1 ; python_version == "3.10" \
+    --hash=sha256:01f520d4f53ef97964a240a035ec2a869fe1a37dde002b57ebc4417a27ccd853 \
+    --hash=sha256:0d85819802132122da43cb86656f8d1f8c6587d54ae7dcaf30e90533028b49fe \
+    --hash=sha256:136443dbd7e1dee43c68ac2694fde36b2849865fa258d39bf822c10e8068eac5 \
+    --hash=sha256:1d8591993e228b0c930c4bb0db464bdad97b3289fb981255d6c9a41aedc84b2d \
+    --hash=sha256:2190f2e9dd7508d2a90ded5ed369255980a1bcdd58e52f7fe24b8162bf9fedbd \
+    --hash=sha256:2c1c351919aca02858f740c6d33adea0c5deea37f9ecca1cc1ef9e884a619d26 \
+    --hash=sha256:36d2bd2ad5fb9eaddba5226aa02c8ec3fa4f192631e347b3ed28186d43be6b54 \
+    --hash=sha256:3d48a93ee1c9b79c04bb38772ee1b64dcf18ff43085896ea460ca8dec96f35f6 \
+    --hash=sha256:47149d5bd38761ac8be13a84864bf0b7b70bc051806bc3669ab1cbc56216b23c \
+    --hash=sha256:4ab97e64ccda8756376892c53a72bd1f964e519c77236368527f758fbc36a53a \
+    --hash=sha256:4b605484e43cdc43f0954ddae319fb75f04cc10dd80d830540060ee7cd0243cd \
+    --hash=sha256:504aa796fe0569bb43171066009ead363de03675276d2d121ac1a4572397870f \
+    --hash=sha256:51529d40e3ca50046d7606fa99ce3956a617f9b36380da3b7f0dd3dd28e68cb5 \
+    --hash=sha256:52c8ef851d9a240f11a88c003eacb03c31fc1c9c4ec64a99a0f922b93874fda9 \
+    --hash=sha256:559db847dc486944896521f68d8190be1c9e719fced785720d2216fe7022b662 \
+    --hash=sha256:5a881ab208c0baf688221f8cecc5401bd291d67e38a1ac884d6736cbcd8247e9 \
+    --hash=sha256:5cb41aa38891e073ee49d55fbc7839cfdb2bc0e600add13874d048c94aadddd1 \
+    --hash=sha256:5e262d41726bc187e69af7825504c933b6794dc3fbd5945e41a79bb14c31f585 \
+    --hash=sha256:5ee18d9ebdb417e384b58fe414e8d6af9f4e7a0ae761519fb50f721de398dd4e \
+    --hash=sha256:7008df2e7655c495dd12d2a4ad038ff878d4ca4b81fccaf82b714e07eae4402c \
+    --hash=sha256:734e20b57ba95624ecf1841e72b53f6e186355e216e5412de414e3c51e5e3c41 \
+    --hash=sha256:7c7e1a961a0b2f2472c1ac5b69affa0ae1132c39adcb67aba98568702b9cc23f \
+    --hash=sha256:7f86fd587c4ed9dd76f318225e7d9b29cfc5a9d43de44e5754db8d1128487085 \
+    --hash=sha256:7f94b27a62cfad8496c8d2513e1a222dd446f095fca8987fceef261225538a15 \
+    --hash=sha256:88dceee75c2c63af144e456745e10101eb67361050196b0b6af5d717254dddf7 \
+    --hash=sha256:8a650c2dbafa08d42e51ba0b62740dae4ecb9338eefa093aa5c78ceb546fcd5c \
+    --hash=sha256:8d65a2fbf9d2f8352685bc1364177ee3923d6baf5e7f43ea4959d7d8bc326a36 \
+    --hash=sha256:96481a5786729fd470164b47cdb3e0e58062a496f455ee41b4403be77cb5a076 \
+    --hash=sha256:a120733b01c45e9a0c34aeef92bf0cf1d56cfe81ed9d47d562f9ed591a9828ac \
+    --hash=sha256:b1d22e6e9387bf4739fbe23bfa80e93f6b0373a7f1b96c6227c32bef95a4d7a8 \
+    --hash=sha256:b8c198f8c1805dc42708689ed6864951fd2494f924149d3e4bce7710f8eb5232 \
+    --hash=sha256:c2541745709bad0264b7d4705ad453b76ccd191e64aa6f0fc66b69a293a45ece \
+    --hash=sha256:c742f741d58a28940ce01d58f0ab2ea3ced8b12402f162f4d534dfe18ba1cd6a \
+    --hash=sha256:c7f2c7f2b9ca6bdeef8f0fa897f8e05085923eb091721675170254cbc5b02897 \
+    --hash=sha256:d312ef37c91508b0ab2cee7da26ec0b3ed2f03ce12bd87a588d771ae15dcf82d \
+    --hash=sha256:d4d8fe59808a54658fcc0160ecfb1b30f9089906c50b23bcb4c69eddc19ec2b4 \
+    --hash=sha256:da25dc3563bff5965356133435b757a795a17b17d01dbc0f42fb32447ddfd917 \
+    --hash=sha256:eab21f45c7f66c13f2a9e0e1535309cee140182a9cdae1e041d02e47291e8396 \
+    --hash=sha256:eb0dc4e38e6a1fd579e5d50369aa2e10acfc9cace504579b2faabb478e76941a \
+    --hash=sha256:ec9bfaf3ad2df51ace80688143a6a4ebc09a248f6ff781a9945e51937008fcbc \
+    --hash=sha256:ede3e6487c5ef5d28634ba3f31f989030ad6af71edfb0055cbbd14189ff240ba \
+    --hash=sha256:f3c6818a1a86dd6dca7ddcaaf76947d5ba31aecc28cb1b67009a5877c9a64f3f \
+    --hash=sha256:f758f1b9299d059cc3f6546ae2af89670cb1c4d48ea29c3cacc4fe7de3058257 \
+    --hash=sha256:f8f0fc26ec2cc2b965b7a3b87cd19c5c6b8c5e5f436b984e85f486d652285c30 \
+    --hash=sha256:fd0409a3653af6c147209d267a0e4243f0ae46b011aa978b1080359fddc9b6cf \
+    --hash=sha256:ff18e6a727ee0ab0388507b89d1bc6a22b138d1e2fa56d1ad494586d61d2eae9 \
+    --hash=sha256:ff2983983d34813c1aeb0fa89091e76c3a22889ee83ab27c5eeb45100560c049
+typing-extensions==4.15.0 ; python_version == "3.10" \
+    --hash=sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466 \
+    --hash=sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548

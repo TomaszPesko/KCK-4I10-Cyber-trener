@@ -3,6 +3,8 @@ import sqlite3
 import threading
 import time
 
+from src.include.set_data import *
+
 
 class DataStorageModule(threading.Thread):
     def __init__(self, db_path="cyber_trainer.db"):
