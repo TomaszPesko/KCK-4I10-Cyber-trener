@@ -1,13 +1,19 @@
 [tool.poetry]
-name = "moj-projekt"
+name = "cyberTrener"
 version = "0.1.0"
-description = "Moje wprowadzenie do Pythona"
+description = "Program do pomiaru jakosciowego cwiczenia dipy tylem na krzesle"
 authors = ["Twój Nick <you@example.com>"]
 readme = "README.md"
-packages = [{include = "src"}]
+packages = [{include = "src"}, { include = "*", from = "src/include" }]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.10,<3.15"
+pyside6 = "^6.11.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0" 
+
+[tool.poetry.scripts]
+cyber-trener = "src.cyberTrener.cyberTrener:main"
+
+

@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 
 # Importujemy stworzoną wcześniej bibliotekę (zgodnie z Twoją nazwą: menu.py)
-from menu import AppWindow, Screen
+from src.menuModule.menu import *
 
 
 class CyberTrener(AppWindow):
@@ -167,8 +167,13 @@ class CyberTrener(AppWindow):
 
 # ===== URUCHOMIENIE APLIKACJI =====
 
-if __name__ == "__main__":
+
+def main():
     app = QApplication(sys.argv)
     window = CyberTrener()
     window.show()
     sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()
