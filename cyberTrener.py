@@ -124,7 +124,12 @@ class CyberTrener(AppWindow):
     # W tych metodach w przyszłości wepniesz wywołania do swoich klas logicznych/baz danych.
 
     def _start_nagrywania_akcja(self):
-        print("[Kamera] Uruchamianie streamu wideo...")
+        connected = self.video_manager.connect_single_camera(0)
+
+        if connected:
+            print("[Kamera] Kamera została podłączona")
+        else:
+            print("[Kamera] Nie udało się połączyć z kamerą")
 
     def _ustaw_perspektywe_akcja(self, perspektywa: str):
         print(f"[Model AI] Konfiguracja detekcji poziomej dla pozycji: {perspektywa}")
