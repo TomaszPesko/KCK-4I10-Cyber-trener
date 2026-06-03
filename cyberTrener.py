@@ -18,7 +18,7 @@ class CyberTrener(AppWindow):
         # Inicjalizacja bazowego okna z biblioteki menu.py
         super().__init__(title="CyberTrener - Twój E-Trener AI")
         self.video_manager = VideoManager()
-
+        self.camera_count = 1
         # Inicjalizacja struktury menu aplikacji
         self._inicjalizuj_ekrany()
 
