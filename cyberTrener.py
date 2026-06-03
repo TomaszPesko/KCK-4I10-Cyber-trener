@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 
 # Importujemy stworzoną wcześniej bibliotekę (zgodnie z Twoją nazwą: menu.py)
 from menu import AppWindow, Screen
+from video_manager import VideoManager
 
 
 class CyberTrener(AppWindow):
@@ -16,6 +17,7 @@ class CyberTrener(AppWindow):
     def __init__(self):
         # Inicjalizacja bazowego okna z biblioteki menu.py
         super().__init__(title="CyberTrener - Twój E-Trener AI")
+        self.video_manager = VideoManager()
 
         # Inicjalizacja struktury menu aplikacji
         self._inicjalizuj_ekrany()
