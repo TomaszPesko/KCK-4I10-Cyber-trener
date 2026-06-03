@@ -1,127 +1,128 @@
-# KCK-4I10-Cyber-trener
-  Ćwiczenie „dipy tyłem na krześle” zostało wybrane jako punkt wyjścia do stworzenia systemu analizy ruchu (e-trenera). Jest to ćwiczenie wykorzystujące masę własnego ciała, które angażuje głównie mięśnie trójgłowe ramienia, a także mięśnie barków i klatki piersiowej. 
+​ Opis projektu „Cyber-Trener”
+Cyber-Trener jest samodzielną aplikacją (stand-alone), której zadaniem jest wspomaganie użytkownika podczas wykonywania ćwiczenia „dipy tyłem na krześle” (bench dips). System wykorzystuje analizę obrazu z jednej lub dwóch kamer w celu rozpoznawania pozycji ciała, monitorowania przebiegu ruchu oraz wykrywania błędów technicznych podczas wykonywania ćwiczenia.
+Wybrane ćwiczenie angażuje głównie mięśnie trójgłowe ramienia, mięśnie barków oraz klatki piersiowej. Jego zaletą jest możliwość wykonywania bez specjalistycznego sprzętu, jednak ze względu na pozycję ćwiczącego – ustawionego tyłem do kierunku ruchu – użytkownik nie jest w stanie na bieżąco kontrolować wielu istotnych elementów techniki. Powoduje to zwiększone ryzyko utrwalania błędnych wzorców ruchowych oraz przeciążeń stawów barkowych i łokciowych.
+System Cyber-Trener ma za zadanie analizować wykonywane ruchy, wykrywać najczęściej występujące błędy oraz przekazywać użytkownikowi informacje zwrotne w czasie rzeczywistym. Program może pracować w konfiguracji z jedną kamerą (widok boczny) lub dwiema kamerami (widok boczny i przedni), co pozwala na dokładniejszą ocenę pozycji ciała i jakości wykonywanego ruchu.
+Do błędów wykrywanych przez system należą między innymi:
+    • zbyt duże oddalenie pleców od krzesła, 
+    • rozchodzenie się łokci na boki, 
+    • zbyt płytki zakres ruchu, 
+    • unoszenie barków do góry, niepoprawna postawa
+    • nieprawidłowe ustawienie nóg wpływające na stabilność pozycji. 
+Po zakończeniu ćwiczenia użytkownik otrzymuje podsumowanie zawierające liczbę wykonanych powtórzeń oraz listę wykrytych błędów wraz z informacją, podczas których powtórzeń wystąpiły.
+​ Aktorzy systemu
+​ Użytkownik
+Osoba wykonująca ćwiczenie przed kamerą. Korzysta z aplikacji w celu monitorowania poprawności techniki oraz uzyskania informacji zwrotnej dotyczącej wykonywanego ćwiczenia.
+​ Administrator
+Administrator nie jest częścią procesu treningowego. Jest to osoba zewnętrzna odpowiedzialna za konfigurację i utrzymanie aplikacji stand-alone. Do jego zadań należy dostarczenie poprawnego instolatora programu, aktualizacja modeli analizy ruchu, konfiguracja opcji dołączania kamer oraz plików wideo oraz testowanie poprawności działania systemu.
+​ 
+​ Diagram przypadków użycia (opis tekstowy)
+System Cyber-Trener udostępnia następujące przypadki użycia:
+​ Dla użytkownika
+    • Uruchomienie aplikacji 
+    • Rozpoczęcie sesji treningowej 
+    • Wykrycie sylwetki użytkownika 
+    • Kalibracja pozycji startowej 
+    • Wykonywanie ćwiczenia 
+    • Otrzymywanie wskazówek w czasie rzeczywistym 
+    • Liczenie poprawnych powtórzeń 
+    • Przegląd wyników treningu 
+    • Zakończenie sesji 
+​ Dla administratora
+    • Instalacja i wdrożenie aplikacji 
+    • Konfiguracja źródeł obrazu (kamer oraz plików wideo) 
+    • Konfiguracja parametrów analizy ruchu 
+    • Aktualizacja modeli analizy ruchu 
+    • Testowanie poprawności działania aplikacji 
 
-  Jego główną zaletą jest prostota: nie wymaga specjalistycznego sprzętu i może być wykonywane praktycznie wszędzie. Jednocześnie ta prostota stanowi wyzwanie projektowe, ponieważ łatwość wykonania utrudnia stworzenie zaawansowanego systemu detekcji błędów przy użyciu jednej kamery. 
+​ Opisy przypadków użycia
+​ PU1 – Uruchomienie aplikacji
+Cel: Uruchomienie systemu Cyber-Trener.
+Aktor: Użytkownik
+Warunki początkowe: Program jest zainstalowany na komputerze.
+Przebieg główny:
+    1. Użytkownik uruchamia aplikację. 
+    2. System inicjalizuje moduły analizy obrazu. 
+    3. System uruchamia kamerę. 
+    4. Następuje przejście do wykrywania użytkownika. 
+Rezultat: System jest gotowy do rozpoczęcia treningu.
 
-  Celem projektu jest opracowanie systemu wspomagającego użytkownika w poprawnym wykonywaniu ćwiczenia poprzez: 
+​ PU2 – Wykrycie użytkownika
+Cel: Zlokalizowanie osoby znajdującej się przed kamerą.
+Aktor: Użytkownik
+Warunki początkowe: Kamera jest aktywna.
+Przebieg główny:
+    1. System analizuje obraz z kamery. 
+    2. Wykrywana jest sylwetka użytkownika. 
+    3. Użytkownik przyjmuje pozycję startową. 
+    4. System rozpoczyna monitorowanie ćwiczenia. 
+Rezultat: Rozpoczyna się analiza ruchu.
 
-1. Analizę pozycji ciała, 
+​ PU3 – Wykonywanie ćwiczenia
+Cel: Analiza poprawności wykonywanych dipów.
+Aktor: Użytkownik
+Warunki początkowe: Użytkownik został poprawnie wykryty.
+Przebieg główny:
+    1. Użytkownik wykonuje ruch opuszczania ciała. 
+    2. System śledzi położenie stawów. 
+    3. Analizowana jest trajektoria ruchu. 
+    4. System wykrywa ewentualne błędy. 
+    5. Po zakończeniu pełnego cyklu ruchu naliczane jest powtórzenie. 
+Rezultat: Powtórzenie zostaje sklasyfikowane jako poprawne lub błędne.
 
-2. Wykrywanie błędów technicznych, 
+​ PU4 – Generowanie informacji zwrotnej
+Cel: Przekazanie użytkownikowi wskazówek dotyczących techniki.
+Aktor: Użytkownik
+Warunki początkowe: W trakcie analizy wykryto nieprawidłowość.
+Przebieg główny:
+    1. System identyfikuje błąd techniczny. 
+    2. Wyświetlany jest odpowiedni komunikat. 
+    3. Użytkownik koryguje swoją pozycję. 
+    4. Analiza jest kontynuowana. 
+Rezultat: Poprawa jakości wykonywanego ćwiczenia.
 
-3. Dostarczanie informacji zwrotnej w czasie rzeczywistym. 
+​ PU5 – Przegląd wyników
+Cel: Zapoznanie użytkownika z wynikami treningu.
+Aktor: Użytkownik
+Warunki początkowe: Sesja treningowa została zakończona.
+Przebieg główny:
+    1. System zatrzymuje analizę ruchu. 
+    2. Zliczane są wszystkie wykonane powtórzenia. 
+    3. Tworzona jest lista wykrytych błędów. 
+    4. Wyświetlane jest podsumowanie treningu. 
+Rezultat: Użytkownik otrzymuje raport z wykonanej sesji.
 
-  Użytkownik opiera dłonie na krawędzi krzesła za plecami, opuszcza ciało poprzez zginanie łokci, a następnie wraca do pozycji wyjściowej poprzez ich wyprost. 
+​ Scenariusz powodzenia
+Użytkownik uruchamia aplikację i ustawia kamerę w odpowiedniej pozycji. Następnie przyjmuje pozycję startową przy krześle. System poprawnie wykrywa sylwetkę oraz położenie kluczowych punktów ciała i rozpoczyna analizę ruchu.
+Podczas wykonywania ćwiczenia użytkownik utrzymuje plecy blisko krzesła, prowadzi łokcie do tyłu, wykonuje odpowiednio głębokie zejście oraz zachowuje płynność ruchu. System nie wykrywa istotnych błędów technicznych i uznaje kolejne powtórzenia za poprawne.
+Po zakończeniu ćwiczenia użytkownik wydaje komendę zakończenia lub przyjmuje zdefiniowaną pozycję końcową. System generuje raport zawierający liczbę poprawnie wykonanych powtórzeń oraz informację o prawidłowej technice wykonania ćwiczenia.
 
-  Najczęstsze błędy, które powinien wykrywać system: 
+​ Scenariusz niepowodzenia
+Użytkownik uruchamia aplikację, jednak kamera została ustawiona nieprawidłowo lub część sylwetki znajduje się poza kadrem. W wyniku tego system nie jest w stanie poprawnie wykryć wszystkich punktów charakterystycznych ciała.
+Analiza ruchu staje się niedokładna, co uniemożliwia prawidłową ocenę techniki ćwiczenia. System wykrywa problem z jakością obrazu i wyświetla komunikat informujący o konieczności poprawy warunków nagrywania.
+Użytkownik otrzymuje komunikaty:
+    • „Ustaw całą sylwetkę w kadrze”. 
+    • „Popraw ustawienie kamery”. 
+    • „Zwiększ oświetlenie pomieszczenia”. 
+Do czasu usunięcia problemu analiza ruchu zostaje wstrzymana lub oznaczona jako niewiarygodna.
 
-1. Zbyt duże oddalenie pleców od krzesła (utrata stabilizacji)  
+​ Scenariusze alternatywne
+​ SA1 – Wykrycie błędnej techniki
+    1. Użytkownik rozpoczyna wykonywanie ćwiczenia. 
+    2. System wykrywa rozchodzenie się łokci na boki. 
+    3. Wyświetlany zostaje komunikat „Prowadź łokcie bliżej ciała”. 
+    4. Użytkownik koryguje ruch. 
+    5. Analiza jest kontynuowana. 
+​ SA2 – Zbyt mały zakres ruchu
+    1. Użytkownik wykonuje powtórzenie. 
+    2. System stwierdza niewystarczające obniżenie ciała. 
+    3. Powtórzenie zostaje oznaczone jako niepełne. 
+    4. Wyświetlana jest informacja „Zwiększ zakres ruchu”. 
+​ SA3 – Utrata użytkownika z kadru
+    1. Podczas ćwiczenia część sylwetki opuszcza obszar widoczny dla kamery. 
+    2. System traci możliwość śledzenia wybranych punktów ciała. 
+    3. Analiza zostaje chwilowo zatrzymana. 
+    4. Użytkownik wraca do pełnej widoczności. 
+    5. System wznawia monitorowanie ćwiczenia. 
 
-2. Rozchodzenie się łokci na boki zamiast prowadzenia ich do tyłu  
-
-3. Zbyt płytki zakres ruchu (brak zejścia do poziomu równoległego ramion)  
-
-4. Przeprost w łokciach przy powrocie  
-
-5. Unoszenie barków do góry (napięcie szyi)  
-
-6. Brak kontroli ruchu (ruch zbyt szybki / szarpany)  
-
-7. Niewłaściwe ustawienie nóg (niestabilna pozycja)
-
-   Scenariusz powodzenia:
-  1. Użytkownik poprawnie ustawia kamerę oraz przyjmuje pozycję startową.
-  2. System wykrywa sylwetkę i rozpoczyna analizę ruchu.
-  3. Użytkownik wykonuje ćwiczenie:
-    - plecy pozostają blisko krzesła,
-    - łokcie prowadzone są do tyłu,
-    - zakres ruchu jest odpowiedni,
-    - ruch wykonywany jest płynnie.
-  4. System analizuje ruch i oznacza powtórzenia jako poprawne.
-Rezultat:
-Użytkownik otrzymuje informację o poprawnym wykonaniu ćwiczenia oraz liczbę poprawnych powtórzeń.
-
-    Scenariusz niepowodzenia:
-  1. Kamera jest ustawiona niepoprawnie lub sylwetka użytkownika znajduje się częściowo poza kadrem.
-  2. System nie może dokładnie wykryć pozycji stawów.
-  3. Analiza ruchu staje się niedokładna i pojawiają się błędne odczyty.
-Rezultat:
-  System nie jest w stanie poprawnie ocenić ćwiczenia.
-Reakcja systemu:
-  Wyświetlany jest komunikat:
-    -„Ustaw całą sylwetkę w kadrze”
-    -„Popraw ustawienie kamery lub oświetlenie”
-
-  Mimo że ćwiczenie jest stosunkowo proste, stanowi dobry punkt startowy do budowy systemu analizy ruchu. Pozwala skupić się na podstawowych aspektach detekcji pozycji ciała oraz identyfikacji błędów, bez konieczności obsługi skomplikowanych sekwencji ruchowych. 
-
-  Jednocześnie jego prostota wymaga dokładniejszego podejścia do analizy jakości ruchu, co czyni je dobrym przypadkiem testowym. 
-
-
-
-# Instrukcja uruchomienia projektu
-
-Ten projekt wymaga Pythona w wersji 3.x oraz biblioteki PySide6 (Qt). Postępuj zgodnie z poniższymi krokami, aby poprawnie skonfigurować środowisko i uruchomić aplikację.
-
-## 🚀 Szybki start
-
-Wymagane jest posiadanie zainstalowanego Pythona oraz systemu zarządzania pakietami `pip`.
-
-### 1. Pobierz projekt
-Sklonuj repozytorium lub pobierz pliki projektu na swój dysk.
-
-### 2. Utwórz wirtualne środowisko (venv)
-Otwórz terminal w głównym folderze projektu i wpisz:
-    python3 -m venv venv
-
-### 3.Aktywuj środowisko wirtualne
-
-W zależności od Twojego systemu operacyjnego uruchom odpowiednią komendę:
-*   **Linux / macOS:**            source venv/bin/activate
-
-*   **Windows (Command Prompt):** venv\Scripts\activate
-
-*   **Windows (PowerShell):**     .\venv\Scripts\activate
-
-*Po aktywacji powinieneś zobaczyć oznaczenie `(venv)` na początku linii w terminalu.*
-
-### 4. Zainstaluj wymagane pakiety
-Zainstaluj automatycznie wszystkie zależności zapisane w pliku konfiguracyjnym:
-    pip install -r requirements.txt
-
-### 5. Wylaczenie srodowiska
-    
-
-# Instrukcja dla Deweloperów (Praca nad Projektem)
-
-Witaj w zespole! Aby zachować porządek w kodzie i unikać konfliktów między globalnymi pakietami (np. Conda `base`), zawsze pracujemy wewnątrz izolowanego środowiska wirtualnego.
-
-## 🛠️ Codzienna praca z kodem
-
-Zanim zaczniesz pisać kod lub uruchomisz edytor (np. VS Code, PyCharm), **zawsze upewnij się, że Twoje środowisko `venv` jest aktywne**.
-
-## Dodawanie nowych bibliotek (Zasada czystego requirements.txt)
-
-Jeśli w trakcie pisania kodu zaimportujesz nową zewnętrzną bibliotekę (np. do obsługi bazy danych czy wykresów):
-
-*   Zainstaluj ją wewnątrz aktywnego venv:
-       pip install nazwa_pakietu
-
-*   Zaktualizuj plik z zależnościami, aby inni deweloperzy oraz użytkownicy również go otrzymali:
-        pip freeze > requirements.txt
-
-*   Zgłoś plik requirements.txt do Gita razem ze swoimi zmianami w kodzie.
-
-# Czego NIE robić (Ważne!)
-
-*   Nigdy nie instaluj pakietów globalnie (base) podczas pracy nad tym projektem. Jeśli zapomnisz aktywować venv, polecenie pip freeze wyeksportuje setki Twoich prywatnych pakietów do pliku projektu.
-
-*   Nigdy nie dodawaj folderu venv/ do repozytorium Git. Środowisko wirtualne każdego programisty zawiera unikalne ścieżki systemowe. Folder venv/ powinien być zawsze dopisany do pliku .gitignore.
-
-# Struktura Projektu
-
-*  menu.py - Główny plik wejściowy aplikacji.
-
-*   requirements.txt - Lista zależności (generowana automatycznie).
- 
-*   venv/ - Lokalny folder środowiska (Ignorowany przez Git)
-
+​ Administrator systemu
+W projekcie Cyber-Trener administrator nie uczestniczy bezpośrednio w treningu użytkownika. Jego rola ogranicza się do czynności technicznych związanych z przygotowaniem i utrzymaniem aplikacji. Administrator może skonfigurować źródła obrazu, ustawić parametry działania algorytmów, przeprowadzić testy poprawności działania oraz udostępniać nowe wersje systemu i reagować na błędy i problemy użytkownika. Ponieważ aplikacja działa lokalnie jako program stand-alone, administrator jest traktowany jako aktor zewnętrzny wobec głównego procesu analizy ćwiczenia.
