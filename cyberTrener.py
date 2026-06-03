@@ -56,6 +56,12 @@ class CyberTrener(AppWindow):
         self.screen_tworzenie = Screen(ts_content)
         self.screen_tworzenie.add_option("Start", self._start_nagrywania_akcja)
         self.screen_tworzenie.add_option(
+            "1 kamera", lambda: self._ustaw_liczbe_kamer(1)
+        )
+        self.screen_tworzenie.add_option(
+            "2 kamery", lambda: self._ustaw_liczbe_kamer(2)
+        )
+        self.screen_tworzenie.add_option(
             "Perspektywa z przodu", lambda: self._ustaw_perspektywe_akcja("Przód")
         )
         self.screen_tworzenie.add_option(
@@ -122,7 +128,9 @@ class CyberTrener(AppWindow):
 
     # ===== INTERFEJS DLA PRZYSZŁYCH MODELI I AKCJI =====
     # W tych metodach w przyszłości wepniesz wywołania do swoich klas logicznych/baz danych.
-
+    def _ustaw_liczbe_kamer(self, liczba):
+        self.camera_count = liczba
+        print(f"[Kamera] Wybrano konfigurację: {liczba} kamera(y)")
     def _start_nagrywania_akcja(self):
         connected = self.video_manager.connect_single_camera(0)
 
