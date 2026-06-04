@@ -135,6 +135,17 @@ class CyberTrener(AppWindow):
 
     def _start_nagrywania_akcja(self):
 
+        print(f"[Konfiguracja] Liczba kamer: {self.camera_count}")
+
+        if self.camera_count == 1:
+            print(
+                f"[Konfiguracja] Perspektywa: {self.selected_perspective}"
+            )
+        else:
+            print(
+                "[Konfiguracja] Przód - laptop, Bok - telefon"
+            )
+
         if self.camera_count == 1:
 
             connected = self.video_manager.connect_single_camera(0)
