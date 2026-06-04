@@ -86,3 +86,26 @@ class VideoManager:
                 break
 
         cv2.destroyAllWindows()
+
+    def show_dual_preview(self):
+
+            if self.camera_1 is None or self.camera_2 is None:
+                return
+
+            while True:
+
+                ret1, frame1 = self.camera_1.read()
+                ret2, frame2 = self.camera_2.read()
+
+                if not ret1 or not ret2:
+                    break
+
+                cv2.imshow("Kamera przednia", frame1)
+                cv2.imshow("Kamera boczna", frame2)
+
+                key = cv2.waitKey(1)
+
+                if key == 27:
+                    break
+
+            cv2.destroyAllWindows()
