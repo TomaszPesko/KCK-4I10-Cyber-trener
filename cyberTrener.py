@@ -154,6 +154,7 @@ class CyberTrener(AppWindow):
 
             if connected:
                 print("[Kamera] Kamera została podłączona")
+                self.video_manager.show_preview()
             else:
                 print("[Kamera] Nie udało się połączyć z kamerą")
 
