@@ -19,6 +19,7 @@ class CyberTrener(AppWindow):
         super().__init__(title="CyberTrener - Twój E-Trener AI")
         self.video_manager = VideoManager()
         self.camera_count = 1
+        self.selected_perspective = "Przód"
         # Inicjalizacja struktury menu aplikacji
         self._inicjalizuj_ekrany()
 
