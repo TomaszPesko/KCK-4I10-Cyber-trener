@@ -41,3 +41,12 @@ class VideoManager:
 
         self.camera_1 = None
         self.camera_2 = None
+
+        def is_single_camera_ready(self):
+            return self.camera_1 is not None
+
+        def is_dual_camera_ready(self):
+            return (
+                    self.camera_1 is not None
+                    and self.camera_2 is not None
+            )
