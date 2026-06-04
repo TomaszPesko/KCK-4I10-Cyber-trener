@@ -12,6 +12,12 @@ class VideoManager:
         if not cap.isOpened():
             return None
 
+        ret, frame = cap.read()
+
+        if not ret:
+            cap.release()
+            return None
+
         return cap
 
     def connect_single_camera(self, source):
