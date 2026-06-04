@@ -131,13 +131,27 @@ class CyberTrener(AppWindow):
     def _ustaw_liczbe_kamer(self, liczba):
         self.camera_count = liczba
         print(f"[Kamera] Wybrano konfigurację: {liczba} kamera(y)")
-    def _start_nagrywania_akcja(self):
-        connected = self.video_manager.connect_single_camera(0)
 
-        if connected:
-            print("[Kamera] Kamera została podłączona")
+    def _start_nagrywania_akcja(self):
+
+        if self.camera_count == 1:
+
+            connected = self.video_manager.connect_single_camera(0)
+
+            if connected:
+                print("[Kamera] Kamera została podłączona")
+            else:
+                print("[Kamera] Nie udało się połączyć z kamerą")
+
         else:
-            print("[Kamera] Nie udało się połączyć z kamerą")
+
+            connected = self.video_manager.connect_dual_cameras(0, 1)
+
+            if connected:
+                print("[Kamera] Kamera przednia została podłączona")
+                print("[Kamera] Kamera boczna została podłączona")
+            else:
+                print("[Kamera] Nie udało się uruchomić dwóch kamer")
 
     def _ustaw_perspektywe_akcja(self, perspektywa: str):
         print(f"[Model AI] Konfiguracja detekcji poziomej dla pozycji: {perspektywa}")
