@@ -168,6 +168,7 @@ class CyberTrener(AppWindow):
             if connected:
                 print("[Kamera] Kamera przednia została podłączona")
                 print("[Kamera] Kamera boczna została podłączona")
+                self.video_manager.show_dual_preview()
             else:
                 print("[Kamera] Nie udało się uruchomić dwóch kamer")
 
