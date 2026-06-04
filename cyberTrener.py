@@ -155,7 +155,10 @@ class CyberTrener(AppWindow):
                 print("[Kamera] Nie udało się uruchomić dwóch kamer")
 
     def _ustaw_perspektywe_akcja(self, perspektywa: str):
-        print(f"[Model AI] Konfiguracja detekcji poziomej dla pozycji: {perspektywa}")
+        self.selected_perspective = perspektywa
+        print(
+            f"[Model AI] Wybrano perspektywę: {perspektywa}"
+        )
 
     def _zapisz_serie_akcja(self):
         print("[Baza Danych] Zapisywanie nowej serii do historii treningów...")
