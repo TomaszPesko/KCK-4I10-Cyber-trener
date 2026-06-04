@@ -6,6 +6,9 @@ class VideoManager:
         self.camera_1 = None
         self.camera_2 = None
 
+        self.front_camera_source = 0
+        self.side_camera_source = 1
+
     def connect_camera(self, source):
         cap = cv2.VideoCapture(source)
 
