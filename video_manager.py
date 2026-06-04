@@ -65,3 +65,24 @@ class VideoManager:
 
     def get_side_camera_source(self):
         return self.side_camera_source
+
+    def show_preview(self):
+
+        if self.camera_1 is None:
+            return
+
+        while True:
+
+            ret, frame = self.camera_1.read()
+
+            if not ret:
+                break
+
+            cv2.imshow("Podglad kamery", frame)
+
+            key = cv2.waitKey(1)
+
+            if key == 27:
+                break
+
+        cv2.destroyAllWindows()
