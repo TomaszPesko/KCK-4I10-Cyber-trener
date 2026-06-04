@@ -148,7 +148,9 @@ class CyberTrener(AppWindow):
 
         if self.camera_count == 1:
 
-            connected = self.video_manager.connect_single_camera(0)
+            connected = self.video_manager.connect_single_camera(
+                self.video_manager.get_front_camera_source()
+            )
 
             if connected:
                 print("[Kamera] Kamera została podłączona")
@@ -157,7 +159,10 @@ class CyberTrener(AppWindow):
 
         else:
 
-            connected = self.video_manager.connect_dual_cameras(0, 1)
+            connected = self.video_manager.connect_dual_cameras(
+                self.video_manager.get_front_camera_source(),
+                self.video_manager.get_side_camera_source()
+            )
 
             if connected:
                 print("[Kamera] Kamera przednia została podłączona")
