@@ -59,3 +59,9 @@ class VideoManager:
                     self.camera_1 is not None
                     and self.camera_2 is not None
             )
+
+        def get_front_camera_source(self):
+            return self.front_camera_source
+
+        def get_side_camera_source(self):
+            return self.side_camera_source
