@@ -166,6 +166,11 @@ class CyberTrener(AppWindow):
                 print("[Kamera] Nie udało się uruchomić dwóch kamer")
 
     def _ustaw_perspektywe_akcja(self, perspektywa: str):
+        if self.camera_count == 2:
+            print(
+                "[Kamera] Perspektywa jest ustawiana automatycznie dla dwóch kamer"
+            )
+            return
         self.selected_perspective = perspektywa
         print(
             f"[Model AI] Wybrano perspektywę: {perspektywa}"
