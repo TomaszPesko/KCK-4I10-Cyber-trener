@@ -274,7 +274,10 @@ class CyberTrener(AppWindow):
 
         front_layout = QVBoxLayout()
 
-        front_title = QLabel("Kamera przednia")
+        if self.camera_count == 1:
+            front_title = QLabel(f"Kamera - {self.selected_perspective}")
+        else:
+            front_title = QLabel("Kamera przednia")
 
         front_title.setAlignment(Qt.AlignCenter)
         front_title.setStyleSheet("color: white;")
