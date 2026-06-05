@@ -21,6 +21,7 @@ class CyberTrener(AppWindow):
         self.video_manager = VideoManager()
         self.camera_count = 1
         self.selected_perspective = "Przód"
+        self.cameras_widget = None
         # Inicjalizacja struktury menu aplikacji
         self._inicjalizuj_ekrany()
 
@@ -51,7 +52,10 @@ class CyberTrener(AppWindow):
         # ----------------------------------------------------
         # 2. STRONA: TWORZENIE SERII
         # ----------------------------------------------------
-        ts_content = self._tworz_widok_kamer()
+        ts_content = self._tworz_placeholder_zawartosci(
+            "Nowa Seria Treningowa",
+            "Wybierz liczbę kamer, aby rozpocząć konfigurację."
+        )
 
         self.screen_tworzenie = Screen(ts_content)
         self.screen_tworzenie.add_option("Start", self._start_nagrywania_akcja)
@@ -130,7 +134,20 @@ class CyberTrener(AppWindow):
     # W tych metodach w przyszłości wepniesz wywołania do swoich klas logicznych/baz danych.
     def _ustaw_liczbe_kamer(self, liczba):
         self.camera_count = liczba
+
         print(f"[Kamera] Wybrano konfigurację: {liczba} kamera(y)")
+
+        self.screen_tworzenie.content_widget = self._tworz_widok_kamer()
+
+        idx = self._screens["tworzenie_serii"]
+        self.content_stack.removeWidget(
+            self.content_stack.widget(idx)
+        )
+        self.content_stack.insertWidget(
+            idx,
+            self.screen_tworzenie.content_widget
+        )
+        self.content_stack.setCurrentIndex(idx)
 
     def _start_nagrywania_akcja(self):
 
@@ -256,25 +273,29 @@ class CyberTrener(AppWindow):
         """)
 
         front_layout = QVBoxLayout()
-        side_layout = QVBoxLayout()
 
         front_title = QLabel("Kamera przednia")
-        side_title = QLabel("Kamera boczna")
 
         front_title.setAlignment(Qt.AlignCenter)
-        side_title.setAlignment(Qt.AlignCenter)
-
         front_title.setStyleSheet("color: white;")
-        side_title.setStyleSheet("color: white;")
 
         front_layout.addWidget(front_title)
         front_layout.addWidget(self.front_camera_label)
 
-        side_layout.addWidget(side_title)
-        side_layout.addWidget(self.side_camera_label)
-
         cameras_layout.addLayout(front_layout)
-        cameras_layout.addLayout(side_layout)
+
+        if self.camera_count == 2:
+            side_layout = QVBoxLayout()
+
+            side_title = QLabel("Kamera boczna")
+
+            side_title.setAlignment(Qt.AlignCenter)
+            side_title.setStyleSheet("color: white;")
+
+            side_layout.addWidget(side_title)
+            side_layout.addWidget(self.side_camera_label)
+
+            cameras_layout.addLayout(side_layout)
 
         main_layout.addWidget(title)
         main_layout.addSpacing(30)
