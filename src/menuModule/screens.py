@@ -1,15 +1,19 @@
 from datetime import datetime
-from PySide6.QtCore import Qt, Signal, QObject
+
+from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QLabel,
+    QFileDialog,
+    QHBoxLayout,
     QInputDialog,
+    QLabel,
     QLineEdit,
     QMessageBox,
-    QFileDialog,
+    QPushButton,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
 )
-from src.menuModule.menu import Screen
+
 from src.include.set_data import WorkoutSet
 from src.menuModule.date_dialog import DateTimeDialog
 from src.menuModule.manual_set_widget import (
@@ -18,6 +22,8 @@ from src.menuModule.manual_set_widget import (
     RepetitionDialog,
     TrainingDataHistoryWidget,
 )
+from src.menuModule.menu import Screen
+from src.menuModule.video_player import VideoAnalysisThread, VideoDisplayWidget
 
 
 class BaseScreen(Screen):
@@ -71,21 +77,220 @@ class CreateSetScreen(BaseScreen):
         self.add_option("Wróć", lambda: navigator_cb("main_page"))
 
 
-class LoadSetScreen(BaseScreen):
+class LoadSetScreen(Screen):
     def __init__(self, navigator_cb):
-        super().__init__(
-            "Wczytywanie Serii", "Zarządzaj wczytanymi danymi treningowymi."
+        # Główny kontener po prawej stronie
+        self.main_container = QWidget()
+        main_layout = QVBoxLayout(self.main_container)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+
+        # -------------------------------------------------------------
+        # WIDGETY WYŚWIETLANIA (Przełącznik: Widok Statystyk / Odtwarzacz AR)
+        # -------------------------------------------------------------
+        self.display_stack = QStackedWidget()
+        main_layout.addWidget(self.display_stack)
+
+        # Widok 1: Tekstowe statystyki serii
+        self.stats_view = QWidget()
+        stats_layout = QVBoxLayout(self.stats_view)
+        stats_layout.setAlignment(Qt.AlignCenter)
+
+        self.lbl_stats_title = QLabel("Podgląd Wczytanej Serii Treningowej")
+        self.lbl_stats_title.setStyleSheet(
+            "color: #00cc66; font-size: 24px; font-weight: bold; margin-bottom: 15px;"
         )
+
+        self.lbl_stats_content = QLabel(
+            "Wybierz pliki wideo z menu po lewej stronie, aby rozpocząć."
+        )
+        self.lbl_stats_content.setStyleSheet(
+            "color: #dddddd; font-size: 16px; line-height: 160%;"
+        )
+        self.lbl_stats_content.setAlignment(Qt.AlignCenter)
+
+        stats_layout.addWidget(self.lbl_stats_title, alignment=Qt.AlignCenter)
+        stats_layout.addWidget(self.lbl_stats_content, alignment=Qt.AlignCenter)
+        self.display_stack.addWidget(self.stats_view)
+
+        # Widok 2: Odtwarzacz wideo (AR)
+        self.video_display = VideoDisplayWidget()
+        self.display_stack.addWidget(self.video_display)
+
+        # Inicjalizacja klasy bazowej Screen
+        super().__init__(self.main_container)
+        self.navigator_cb = navigator_cb
+
+        # Ścieżki do plików wideo
+        self.front_video_path = None
+        self.side_video_path = None
+        self.analysis_thread = None
+
+        # Konstrukcja lewego menu zgodnie z nowymi wytycznymi
+        self._build_menu()
+
+    def _build_menu(self):
+        self.options.clear()
+
+        # Opcja 1: Perspektywa z przodu + Stan pliku
+        front_txt = f"📸 Przód: {self._get_filename_or_empty(self.front_video_path)}"
+        self.add_option(front_txt, self._select_front_video)
+        if self.front_video_path:
+            self.add_option(
+                "   ❌ Wyczyść przód", lambda: self._clear_perspective("front")
+            )
+
+        # Opcja 2: Perspektywa z boku + Stan pliku
+        side_txt = f"📸 Bok: {self._get_filename_or_empty(self.side_video_path)}"
+        self.add_option(side_txt, self._select_side_video)
+        if self.side_video_path:
+            self.add_option(
+                "   ❌ Wyczyść bok", lambda: self._clear_perspective("side")
+            )
+
+        # Nowe przyciski akcji
+        self.add_option("📊 Statystyki Serii", self._show_static_stats)
+        self.add_option("⚙️ Analiza Serii (Odtwórz AR)", self._start_video_analysis)
+
         self.add_option(
-            "Perspektywa z przodu",
-            lambda: print("[UI] Kliknięto: Wczytywanie: Perspektywa z przodu"),
+            "💾 Zapisz serię",
+            lambda: print("[Database] Zapis serii wstrzymany do końca analizy"),
         )
-        self.add_option(
-            "Perspektywa z boku",
-            lambda: print("[UI] Kliknięto: Wczytywanie: Perspektywa z boku"),
+        self.add_option("⬅️ Wróć", self._on_back_clicked)
+
+    def _get_filename_or_empty(self, path):
+        import os
+
+        return os.path.basename(path) if path else "--- WYBIERZ ---"
+
+    def _select_front_video(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self.main_container,
+            "Wybierz nagranie z przodu",
+            "",
+            "Wideo (*.mp4 *.avi *.mov)",
         )
-        self.add_option("Zapisz serię", lambda: print("[Database] Auto-saving set..."))
-        self.add_option("Wróć", lambda: navigator_cb("main_page"))
+        if file_path:
+            self.front_video_path = file_path
+            self._update_menu_and_refresh()
+
+    def _select_side_video(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self.main_container,
+            "Wybierz nagranie z boku",
+            "",
+            "Wideo (*.mp4 *.avi *.mov)",
+        )
+        if file_path:
+            self.side_video_path = file_path
+            self._update_menu_and_refresh()
+
+    def _clear_perspective(self, mode):
+        if mode == "front":
+            self.front_video_path = None
+        elif mode == "side":
+            self.side_video_path = None
+        self._update_menu_and_refresh()
+
+    def _update_menu_and_refresh(self):
+        """Metoda wymuszająca przebudowanie lewego menu w AppWindow."""
+        self._build_menu()
+        # Wywołanie wewnętrznej struktury odświeżania menu z klasy AppWindow
+        # Przekazujemy instancję rodzica okna, aby odświeżyć zaalokowane QPushButtony
+        if self.main_container.window():
+            window = self.main_container.window()
+            if hasattr(window, "refresh_screen_menu"):
+                window.refresh_screen_menu("load_set", self)
+
+    def _show_static_stats(self):
+        """Generuje wstępny szybki raport tekstowy bez uruchamiania wideo."""
+        if not self.front_video_path and not self.side_video_path:
+            self.lbl_stats_content.setText(
+                "<span style='color:red;'>Błąd: Musisz wybrać przynajmniej jeden plik wideo!</span>"
+            )
+            return
+
+        self.display_stack.setCurrentIndex(0)  # Widok tekstowy
+        tak_html = "<span style='color:#00cc66;'>TAK</span>"
+
+        self.lbl_stats_content.setText(
+            f"<b>Status plików gotowych do pełnej analizy:</b><br>"
+            f"Wideo z przodu: {tak_html if self.front_video_path else 'Brak'}<br>"
+            f"Wideo z boku: {tak_html if self.side_video_path else 'Brak'}<br><br>"
+            f"<i>Kliknij 'Analiza Serii', aby wygenerować dynamiczne powtórzenia i błędy AR.</i>"
+        )
+
+    def _start_video_analysis(self):
+        if not self.front_video_path and not self.side_video_path:
+            return
+
+        # Przełącz widok na podział klatek wideo
+        self.display_stack.setCurrentIndex(1)
+        self.video_display.set_modes(
+            bool(self.front_video_path), bool(self.side_video_path)
+        )
+
+        # Zabezpieczenie przed ponownym kliknięciem (blokowanie menu akcji)
+        self._toggle_menu_buttons(enabled=False)
+
+        # Uruchomienie przetwarzania w tle
+        self.analysis_thread = VideoAnalysisThread(
+            self.front_video_path, self.side_video_path
+        )
+        self.analysis_thread.frame_processed.connect(self.video_display.update_frames)
+        self.analysis_thread.finished_analysis.connect(self._on_analysis_finished)
+        self.analysis_thread.start()
+
+    def _on_analysis_finished(self, final_stats):
+        self._toggle_menu_buttons(enabled=True)
+        self.display_stack.setCurrentIndex(0)  # Powrót do widoku podsumowania
+
+        # Zliczanie wykrytych błędów z feedbacku
+        errors_list = []
+        if final_stats["hand_feedback"] != "OK":
+            errors_list.append(f"Rozstaw dłoni: {final_stats['hand_feedback']}")
+        if not final_stats["leg_correct"]:
+            errors_list.append("Złe ugięcie nóg w kolanach")
+        if not final_stats["body_correct"]:
+            errors_list.append("Brak kąta prostego tułów-uda")
+
+        err_str = (
+            "<br>".join([f"• {e}" for e in errors_list])
+            if errors_list
+            else "Brak uwag (Seria poprawna)"
+        )
+
+        self.lbl_stats_content.setText(
+            f"<span style='color: #00cc66; font-size: 20px;'><b>Podsumowanie ukończonej analizy:</b></span><br><br>"
+            f"<b>Suma zaliczonych powtórzeń:</b> {final_stats['total_reps']}<br>"
+            f"Powtórzenia (Widok Przód): {final_stats['front_reps']} | (Widok Bok): {final_stats['side_reps']}<br><br>"
+            f"<span style='color: #ffcc00;'><b>Zarejestrowane nieprawidłowości:</b></span><br>{err_str}"
+        )
+
+    def _toggle_menu_buttons(self, enabled: bool):
+        """Blokuje lewe menu na czas renderowania."""
+        window = self.main_container.window()
+        if window and hasattr(window, "menu_stack"):
+            active_menu_card = window.menu_stack.currentWidget()
+            if active_menu_card:
+                for btn in active_menu_card.findChildren(QPushButton):
+                    if "Wróć" not in btn.text():
+                        btn.setEnabled(enabled)
+
+    def _reset_all_states(self):
+        """Czyści ścieżki i resetuje widok."""
+        if self.analysis_thread and self.analysis_thread.isRunning():
+            self.analysis_thread.stop()
+        self.front_video_path = None
+        self.side_video_path = None
+        self.display_stack.setCurrentIndex(0)
+        self.lbl_stats_content.setText(
+            "Wybierz pliki wideo z menu po lewej stronie, aby rozpocząć."
+        )
+        self._update_menu_and_refresh()
+
+    def _on_back_clicked(self):
+        self._reset_all_states()
+        self.navigator_cb("main_page")
 
 
 class AnalyzeProgressScreen(Screen):

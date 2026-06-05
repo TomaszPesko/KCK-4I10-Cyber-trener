@@ -167,6 +167,27 @@ class AppWindow(QWidget):
         else:
             print(f"Błąd: Ekran o nazwie '{name}' nie istnieje.")
 
+    def refresh_screen_menu(self, name: str, screen: Screen):
+        """Usuwa stare przyciski z menu_card danego ekranu i generuje je na nowo."""
+        if name in self._screens:
+            idx = self._screens[name]
+            menu_card = self.menu_stack.widget(idx)
+
+            # Czyszczenie starego layoutu z przycisków
+            if menu_card and menu_card.layout():
+                layout = menu_card.layout()
+                while layout.count():
+                    item = layout.takeAt(0)
+                    widget = item.widget()
+                    if widget:
+                        widget.deleteLater()
+
+                # Dodanie nowych przycisków na podstawie zmodyfikowanej listy options
+                for text, callback in screen.options:
+                    btn = QPushButton(text)
+                    btn.clicked.connect(callback)
+                    layout.addWidget(btn)
+
 
 # ===== PRZYKŁAD UŻYCIA (DEMO) =====
 
