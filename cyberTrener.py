@@ -1,7 +1,8 @@
 import sys
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout
 
 # Importujemy stworzoną wcześniej bibliotekę (zgodnie z Twoją nazwą: menu.py)
 from menu import AppWindow, Screen
@@ -218,6 +219,31 @@ class CyberTrener(AppWindow):
 
         layout.addWidget(lbl_tytul)
         layout.addWidget(lbl_podtytul)
+        return widget
+
+    def _tworz_widok_kamer(self):
+
+        widget = QWidget()
+
+        layout = QHBoxLayout(widget)
+
+        self.front_camera_label = QLabel("Kamera przednia")
+        self.side_camera_label = QLabel("Kamera boczna")
+
+        self.front_camera_label.setMinimumSize(320, 240)
+        self.side_camera_label.setMinimumSize(320, 240)
+
+        self.front_camera_label.setStyleSheet(
+            "border: 2px solid #00cc66;"
+        )
+
+        self.side_camera_label.setStyleSheet(
+            "border: 2px solid #00cc66;"
+        )
+
+        layout.addWidget(self.front_camera_label)
+        layout.addWidget(self.side_camera_label)
+
         return widget
 
 
