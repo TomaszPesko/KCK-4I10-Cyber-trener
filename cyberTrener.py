@@ -51,10 +51,8 @@ class CyberTrener(AppWindow):
         # ----------------------------------------------------
         # 2. STRONA: TWORZENIE SERII
         # ----------------------------------------------------
-        ts_content = self._tworz_placeholder_zawartosci(
-            "Nowa Seria Treningowa",
-            "Kamera gotowa. Wybierz perspektywę, aby rozpocząć analizę ruchu.",
-        )
+        ts_content = self._tworz_widok_kamer()
+
         self.screen_tworzenie = Screen(ts_content)
         self.screen_tworzenie.add_option("Start", self._start_nagrywania_akcja)
         self.screen_tworzenie.add_option(
@@ -225,24 +223,62 @@ class CyberTrener(AppWindow):
 
         widget = QWidget()
 
-        layout = QHBoxLayout(widget)
+        main_layout = QVBoxLayout(widget)
+        main_layout.setAlignment(Qt.AlignCenter)
 
-        self.front_camera_label = QLabel("Kamera przednia")
-        self.side_camera_label = QLabel("Kamera boczna")
-
-        self.front_camera_label.setMinimumSize(320, 240)
-        self.side_camera_label.setMinimumSize(320, 240)
-
-        self.front_camera_label.setStyleSheet(
-            "border: 2px solid #00cc66;"
+        title = QLabel("Nowa Seria Treningowa")
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet(
+            "color: #00cc66; font-size: 28px; font-weight: bold;"
         )
 
-        self.side_camera_label.setStyleSheet(
-            "border: 2px solid #00cc66;"
-        )
+        cameras_layout = QHBoxLayout()
+        cameras_layout.setAlignment(Qt.AlignCenter)
+        cameras_layout.setSpacing(30)
 
-        layout.addWidget(self.front_camera_label)
-        layout.addWidget(self.side_camera_label)
+        self.front_camera_label = QLabel()
+        self.side_camera_label = QLabel()
+
+        self.front_camera_label.setFixedSize(320, 240)
+        self.side_camera_label.setFixedSize(320, 240)
+
+        self.front_camera_label.setAlignment(Qt.AlignCenter)
+        self.side_camera_label.setAlignment(Qt.AlignCenter)
+
+        self.front_camera_label.setStyleSheet("""
+            border: 2px solid #00cc66;
+            color: white;
+        """)
+
+        self.side_camera_label.setStyleSheet("""
+            border: 2px solid #00cc66;
+            color: white;
+        """)
+
+        front_layout = QVBoxLayout()
+        side_layout = QVBoxLayout()
+
+        front_title = QLabel("Kamera przednia")
+        side_title = QLabel("Kamera boczna")
+
+        front_title.setAlignment(Qt.AlignCenter)
+        side_title.setAlignment(Qt.AlignCenter)
+
+        front_title.setStyleSheet("color: white;")
+        side_title.setStyleSheet("color: white;")
+
+        front_layout.addWidget(front_title)
+        front_layout.addWidget(self.front_camera_label)
+
+        side_layout.addWidget(side_title)
+        side_layout.addWidget(self.side_camera_label)
+
+        cameras_layout.addLayout(front_layout)
+        cameras_layout.addLayout(side_layout)
+
+        main_layout.addWidget(title)
+        main_layout.addSpacing(30)
+        main_layout.addLayout(cameras_layout)
 
         return widget
 
