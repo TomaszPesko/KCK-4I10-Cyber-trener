@@ -23,6 +23,7 @@ from src.menuModule.manual_set_widget import (
     TrainingDataHistoryWidget,
 )
 from src.menuModule.menu import Screen
+from src.menuModule.progress_chart_widget import ProgressChartWidget
 from src.menuModule.video_player import VideoAnalysisThread, VideoDisplayWidget
 
 
@@ -294,7 +295,9 @@ class LoadSetScreen(Screen):
 
 
 class AnalyzeProgressScreen(Screen):
-    def __init__(self, navigator_cb, load_data_cb):
+
+    def __init__(self, navigator_cb, get_db_connection_cb):
+        """get_db_connection_cb: funkcja callback zwracająca otwarte połączenie sqlite3 (conn)"""
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(10, 10, 10, 10)
@@ -306,25 +309,138 @@ class AnalyzeProgressScreen(Screen):
         lbl_info.setAlignment(Qt.AlignCenter)
         layout.addWidget(lbl_info)
 
-        self.history_widget = TrainingDataHistoryWidget()
-        layout.addWidget(self.history_widget)
+        # Podmieniamy stary widget historii na nasz zaawansowany moduł wykresów QtCharts
+        self.chart_widget = ProgressChartWidget()
+        layout.addWidget(self.chart_widget)
 
         super().__init__(container)
-        self.add_option("Wczytaj dane treningowe", load_data_cb)
-        self.add_option(
-            "Jakość serii", lambda: print("[UI] Kliknięto: Analiza: Jakość serii")
-        )
-        self.add_option(
-            "Ilość powtórzeń", lambda: print("[UI] Kliknięto: Analiza: Ilość powtórzeń")
-        )
-        self.add_option(
-            "Czas trwania serii", lambda: print("[UI] Kliknięto: Analiza: Czas trwania")
-        )
-        self.add_option(
-            "Liczba serii w ciągu dnia",
-            lambda: print("[UI] Kliknięto: Analiza: Liczba serii/dzień"),
-        )
+
+        # Referencja do bazy danych
+        self.get_db_conn = get_db_connection_cb
+        self.cached_sets_data = []
+
+        # Rejestracja opcji menu bocznego
+        self.add_option("Wczytaj dane treningowe", self._load_training_data)
+        self.add_option("Jakość serii", self._analyze_set_quality)
+        self.add_option("Ilość powtórzeń", self._analyze_reps_count)
+        self.add_option("Czas trwania serii", self._analyze_duration)
+        self.add_option("Liczba serii w ciągu dnia", self._analyze_sets_per_day)
         self.add_option("Wróć", lambda: navigator_cb("main_page"))
+
+    def _get_db_cursor(self):
+        """Pobiera bezpiecznie kursor z połączenia bazy danych."""
+        conn = self.get_db_conn()
+        if conn:
+            return conn.cursor()
+        print("[Błąd] Brak aktywnego połączenia z bazą danych!")
+        return None
+
+    def _load_training_data(self):
+        """Wczytuje surowe dane z tabeli 'sets' do pamięci podręcznej podręcznej."""
+        cursor = self._get_db_cursor()
+        if not cursor:
+            return
+
+        try:
+            # Pobieramy serie posortowane chronologicznie
+            cursor.execute(
+                "SELECT execution_date, duration_seconds, total_reps, correct_reps FROM sets ORDER BY execution_date ASC"
+            )
+            self.cached_sets_data = cursor.fetchall()
+            print(
+                f"[Analiza] Pomyślnie wczytano {len(self.cached_sets_data)} serii treningowych."
+            )
+
+            # Informacja zwrotna na wykresie
+            self.chart_widget.clear_chart()
+            self.chart_widget.chart.setTitle(
+                "Dane wczytane pomyślnie! Wybierz typ analizy z menu."
+            )
+            self.chart_widget.chart.setTitleBrush(QColor("#00cc66"))
+        except Exception as e:
+            print(f"[Błąd] Nie udało się wczytać danych treningowych: {e}")
+
+    def _analyze_set_quality(self):
+        """Wykres procentu poprawnych powtórzeń w serii na przestrzeni czasu."""
+        if not self.cached_sets_data:
+            self._load_training_data()
+            if not self.cached_sets_data:
+                return
+
+        chart_data = []
+        for row in self.cached_sets_data:
+            exec_date, _, total_reps, correct_reps = row
+            if total_reps > 0:
+                # Wyliczenie procentu poprawności serii
+                quality_percent = (correct_reps / total_reps) * 100.0
+                chart_data.append((exec_date, quality_percent))
+
+        self.chart_widget.display_line_chart(
+            data=chart_data,
+            title="Analiza Postępów: Jakość Wykonania Serii",
+            y_label="Procent poprawnych powtórzeń (%)",
+            is_percentage=True,
+        )
+
+    def _analyze_reps_count(self):
+        """Wykres całkowitej ilości powtórzeń w serii na przestrzeni czasu."""
+        if not self.cached_sets_data:
+            self._load_training_data()
+            if not self.cached_sets_data:
+                return
+
+        chart_data = [(row[0], row[2]) for row in self.cached_sets_data]
+
+        self.chart_widget.display_line_chart(
+            data=chart_data,
+            title="Analiza Postępów: Liczba Powtórzeń w Seriach",
+            y_label="Suma powtórzeń (reps)",
+        )
+
+    def _analyze_duration(self):
+        """Wykres czasu trwania serii (w sekundach) na przestrzeni czasu."""
+        if not self.cached_sets_data:
+            self._load_training_data()
+            if not self.cached_sets_data:
+                return
+
+        chart_data = [(row[0], row[1]) for row in self.cached_sets_data]
+
+        self.chart_widget.display_line_chart(
+            data=chart_data,
+            title="Analiza Postępów: Czas Trwania Serii",
+            y_label="Czas (sekundy)",
+        )
+
+    def _analyze_sets_per_day(self):
+        """Wykres ilości serii wykonanych danego dnia.
+
+        Dni z wartością 0 są pomijane, aby zapobiec skakaniu wykresu.
+        """
+        cursor = self._get_db_cursor()
+        if not cursor:
+            return
+
+        try:
+            # Agregacja bazy danych: wyciągamy tylko rok-miesiąc-dzień z execution_date i liczymy wystąpienia
+            # Zastosowanie SUBSTR pozwala uciąć godziny z formatu YYYY-MM-DD HH:MM:SS
+            cursor.execute("""
+                SELECT SUBSTR(execution_date, 1, 10) as tr_date, COUNT(id) as set_count 
+                FROM sets 
+                GROUP BY tr_date 
+                ORDER BY tr_date ASC
+            """)
+            daily_data = cursor.fetchall()
+
+            # Zgodnie z założeniem: jeśli serii było 0, traktujemy to jako brak danych (brak rekordów w bazie)
+            # Wykres wyświetli wyłącznie dni, w których faktycznie odbył się trening.
+            self.chart_widget.display_bar_chart(
+                data=daily_data,
+                title="Analiza Częstotliwości: Liczba Serii Wykonanych w Ciągu Dnia",
+                y_label="Liczba serii",
+            )
+        except Exception as e:
+            print(f"[Błąd] Problem podczas agregacji serii per dzień: {e}")
 
 
 class ManualDefinitionScreen(Screen, QObject):
