@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from PySide6.QtCore import QDateTime, QObject, Qt, Signal
-from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtGui import QBrush, QColor, QPainter, QPen
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -296,12 +296,8 @@ class LoadSetScreen(Screen):
 
 
 class AnalyzeProgressScreen(Screen):
+
     def __init__(self, navigator_cb, load_data_action_cb, get_db_connection_cb=None):
-        """
-        navigator_cb: powrót do ekranu głównego
-        load_data_action_cb: funkcja z cyberTrener.py, która przyjmuje ścieżkę do pliku .db i mówi db_module, żeby wczytał dane
-        get_db_connection_cb: opcjonalny callback do bezpośrednich zapytań synchronicznych (np. wykres słupkowy)
-        """
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(10, 10, 10, 10)
@@ -313,15 +309,15 @@ class AnalyzeProgressScreen(Screen):
         lbl_info.setAlignment(Qt.AlignCenter)
         layout.addWidget(lbl_info)
 
+        # Nasz widget wykresów
         self.chart_widget = ProgressChartWidget()
         layout.addWidget(self.chart_widget)
 
         super().__init__(container)
 
-        # Zapisujemy callbacki
         self.load_data_cb = load_data_action_cb
         self.get_db_conn = get_db_connection_cb
-        self.cached_sets_data = []
+        self.cached_sets_data = []  # Pamięć podręczna na dane z bazy
 
         # Rejestracja opcji menu bocznego
         self.add_option("Wczytaj dane treningowe", self._load_training_data)
@@ -332,8 +328,7 @@ class AnalyzeProgressScreen(Screen):
         self.add_option("Wróć", lambda: navigator_cb("main_page"))
 
     def _load_training_data(self):
-        """Otwiera okno modalne do wyboru pliku bazy danych i inicjalizuje ładowanie."""
-        # FIX: Używamy self.content_widget jako poprawnego rodzica typu QWidget dla okna modalnego
+        """Wywoływane TYLKO po kliknięciu przycisku 'Wczytaj dane treningowe'."""
         file_path, _ = QFileDialog.getOpenFileName(
             self.content_widget,
             "Wybierz plik bazy danych z treningami",
@@ -341,63 +336,64 @@ class AnalyzeProgressScreen(Screen):
             "Baza danych SQLite (*.db *.sqlite);;Wszystkie pliki (*)",
         )
 
-        # Jeśli użytkownik zamknął okno i nie wybrał pliku, przerywamy
         if not file_path:
             print("[Analiza] Anulowano wybór bazy danych.")
             return
 
         print(f"[Analiza] Wybrano bazę danych: {file_path}")
 
-        # Informacja na wykresie o trwającym procesie wczytywania
+        # Czyszczenie i ustawienie statusu oczekiwania
         self.chart_widget.clear_chart()
         self.chart_widget.chart.setTitle("Wczytywanie danych z bazy... Proszę czekać.")
         self.chart_widget.chart.setTitleBrush(QColor("#ffcc00"))
 
-        # Wywołanie callbacku przekazanego z cyberTrener.py, który przekaże ścieżkę do db_module
-        if hasattr(self, "load_data_cb") and self.load_data_cb:
+        # Wymuszenie asynchronicznego ładowania przez główny moduł
+        if self.load_data_cb:
             self.load_data_cb(file_path)
-        else:
-            print("[Analiza] Błąd: Brak podpiętego callbacku 'load_data_cb'.")
 
     def handle_async_data_loaded(self, raw_sets_data):
-        """Slot obsługujący sygnał 'data_loaded' z modułu bazy danych.
-
-        Zapisuje dane do cache i informuje użytkownika o gotowości.
-        """
-        # Sprawdzamy format danych - jeśli sygnał zwraca obiekty, mapujemy je na krotki,
-        # a jeśli zwraca surowy wynik fetchall() z SQLite, przypisujemy bezpośrednio:
+        """Slot wywoływany automatycznie, gdy db_module skończy czytać plik .db."""
         self.cached_sets_data = raw_sets_data
         print(
-            f"[Analiza] Sygnał odebrany: Załadowano {len(self.cached_sets_data)} rekordów."
+            f"[Analiza] Sukces! Odebrano {len(self.cached_sets_data)} serii z bazy danych."
         )
 
-        # Aktualizacja wyglądu wykresu
+        # Informujemy użytkownika na wykresie, że dane są już w pamięci programu
         self.chart_widget.clear_chart()
         self.chart_widget.chart.setTitle(
-            "Dane załadowane pomyślnie! Wybierz typ analizy z menu."
+            "Dane załadowane pomyślnie! Wybierz typ wykresu z menu bocznego."
         )
         self.chart_widget.chart.setTitleBrush(QColor("#00cc66"))
 
-    def _get_db_cursor(self):
-        """Pobiera bezpiecznie kursor z połączenia bazy danych."""
-        conn = self.get_db_conn()
-        if conn:
-            return conn.cursor()
-        print("[Błąd] Brak aktywnego połączenia z bazą danych!")
-        return None
+    def _check_data_ready(self) -> bool:
+        """Metoda pomocnicza sprawdzająca, czy dane są w pamięci.
+
+        JEŻELI DANYCH NIE MA, wyświetla komunikat na wykresie i kończy działanie.
+        NIGDY nie otwiera okna wyboru pliku samodzielnie!
+        """
+        if not self.cached_sets_data:
+            self.chart_widget.clear_chart()
+            self.chart_widget.chart.setTitle(
+                "Brak danych! Najpierw kliknij 'Wczytaj dane treningowe' i wybierz plik bazy."
+            )
+            self.chart_widget.chart.setTitleBrush(QBrush(QColor("#cc0000")))
+            return False
+        return True
 
     def _analyze_set_quality(self):
-        """Wykres procentu poprawnych powtórzeń w serii na przestrzeni czasu."""
-        if not self.cached_sets_data:
-            self._load_training_data()
-            if not self.cached_sets_data:
-                return
+        """Wykres jakości serii (procent poprawnego wykonania)."""
+        # GWARANCJA: Jeśli danych nie ma, funkcja tylko wyświetli komunikat i wyjdzie (return)
+        if not self._check_data_ready():
+            return
 
         chart_data = []
         for row in self.cached_sets_data:
-            exec_date, _, total_reps, correct_reps = row
+            meta = row["metadata"]
+            exec_date = meta["date"]
+            total_reps = meta["total"]
+            correct_reps = meta["correct"]
+
             if total_reps > 0:
-                # Wyliczenie procentu poprawności serii
                 quality_percent = (correct_reps / total_reps) * 100.0
                 chart_data.append((exec_date, quality_percent))
 
@@ -409,13 +405,14 @@ class AnalyzeProgressScreen(Screen):
         )
 
     def _analyze_reps_count(self):
-        """Wykres całkowitej ilości powtórzeń w serii na przestrzeni czasu."""
-        if not self.cached_sets_data:
-            self._load_training_data()
-            if not self.cached_sets_data:
-                return
+        """Wykres całkowitej ilości powtórzeń."""
+        if not self._check_data_ready():
+            return
 
-        chart_data = [(row[0], row[2]) for row in self.cached_sets_data]
+        chart_data = [
+            (row["metadata"]["date"], row["metadata"]["total"])
+            for row in self.cached_sets_data
+        ]
 
         self.chart_widget.display_line_chart(
             data=chart_data,
@@ -424,13 +421,14 @@ class AnalyzeProgressScreen(Screen):
         )
 
     def _analyze_duration(self):
-        """Wykres czasu trwania serii (w sekundach) na przestrzeni czasu."""
-        if not self.cached_sets_data:
-            self._load_training_data()
-            if not self.cached_sets_data:
-                return
+        """Wykres czasu trwania serii."""
+        if not self._check_data_ready():
+            return
 
-        chart_data = [(row[0], row[1]) for row in self.cached_sets_data]
+        chart_data = [
+            (row["metadata"]["date"], row["metadata"]["duration"])
+            for row in self.cached_sets_data
+        ]
 
         self.chart_widget.display_line_chart(
             data=chart_data,
@@ -439,34 +437,24 @@ class AnalyzeProgressScreen(Screen):
         )
 
     def _analyze_sets_per_day(self):
-        """Wykres ilości serii wykonanych danego dnia.
-
-        Dni z wartością 0 są pomijane, aby zapobiec skakaniu wykresu.
-        """
-        cursor = self._get_db_cursor()
-        if not cursor:
+        """Wykres liczby serii w ciągu dnia (agregowany z cache)."""
+        if not self._check_data_ready():
             return
 
-        try:
-            # Agregacja bazy danych: wyciągamy tylko rok-miesiąc-dzień z execution_date i liczymy wystąpienia
-            # Zastosowanie SUBSTR pozwala uciąć godziny z formatu YYYY-MM-DD HH:MM:SS
-            cursor.execute("""
-                SELECT SUBSTR(execution_date, 1, 10) as tr_date, COUNT(id) as set_count 
-                FROM sets 
-                GROUP BY tr_date 
-                ORDER BY tr_date ASC
-            """)
-            daily_data = cursor.fetchall()
+        daily_counts = {}
+        for row in self.cached_sets_data:
+            exec_date = row["metadata"]["date"]
+            if exec_date and len(exec_date) >= 10:
+                date_only = exec_date[:10]
+                daily_counts[date_only] = daily_counts.get(date_only, 0) + 1
 
-            # Zgodnie z założeniem: jeśli serii było 0, traktujemy to jako brak danych (brak rekordów w bazie)
-            # Wykres wyświetli wyłącznie dni, w których faktycznie odbył się trening.
-            self.chart_widget.display_bar_chart(
-                data=daily_data,
-                title="Analiza Częstotliwości: Liczba Serii Wykonanych w Ciągu Dnia",
-                y_label="Liczba serii",
-            )
-        except Exception as e:
-            print(f"[Błąd] Problem podczas agregacji serii per dzień: {e}")
+        sorted_daily_data = sorted(daily_counts.items())
+
+        self.chart_widget.display_bar_chart(
+            data=sorted_daily_data,
+            title="Analiza Częstotliwości: Liczba Serii Wykonanych w Ciągu Dnia",
+            y_label="Liczba serii",
+        )
 
 
 class ManualDefinitionScreen(Screen, QObject):

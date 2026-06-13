@@ -1,15 +1,15 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout
 from PySide6.QtCharts import (
-    QChart,
-    QChartView,
-    QLineSeries,
     QBarSeries,
     QBarSet,
+    QChart,
+    QChartView,
     QDateTimeAxis,
+    QLineSeries,
     QValueAxis,
 )
-from PySide6.QtCore import Qt, QDateTime
-from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtCore import QDateTime, Qt
+from PySide6.QtGui import QBrush, QColor, QPainter, QPen
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 
 class ProgressChartWidget(QWidget):
@@ -50,21 +50,28 @@ class ProgressChartWidget(QWidget):
         y_label: str,
     ):
         """Pomocnicza metoda konfigurująca osie X (Czas) oraz Y (Wartość)."""
+        # Konfiguracja osi X (Czasowej)
         axis_x = QDateTimeAxis()
         axis_x.setFormat("yyyy-MM-dd")
         axis_x.setRange(min_dt, max_dt)
         axis_x.setLabelsColor(QColor("#bbbbbb"))
         axis_x.setGridLineColor(QColor("#444444"))
-        axis_x.setTitleText("Data")
-        axis_x.setTitleColor(QColor("#00cc66"))
 
+        # POPRAWKA: Ustawienie tytułu i koloru za pomocą setTitleBrush
+        axis_x.setTitleText("Data")
+        axis_x.setTitleVisible(True)
+        axis_x.setTitleBrush(QBrush(QColor("#00cc66")))
+
+        # Konfiguracja osi Y (Wartościowej)
         axis_y = QValueAxis()
-        # Bezpieczny margines dla osi Y
         axis_y.setRange(y_min, y_max if y_max > y_min else y_min + 1)
         axis_y.setLabelsColor(QColor("#bbbbbb"))
         axis_y.setGridLineColor(QColor("#444444"))
+
+        # POPRAWKA: Ustawienie tytułu i koloru za pomocą setTitleBrush
         axis_y.setTitleText(y_label)
-        axis_y.setTitleColor(QColor("#00cc66"))
+        axis_y.setTitleVisible(True)
+        axis_y.setTitleBrush(QBrush(QColor("#00cc66")))
 
         # Zapewnienie dyskretnych wartości (np. dla powtórzeń) jeśli liczby są małe
         if y_max < 10:

@@ -46,6 +46,15 @@ class CyberTrener(AppWindow):
         self.register_screen("analyze_progress", self.screen_analyze)
 
         # Połączenie sygnału powrotnego z bazy danych
+        # W pliku cyberTrener.py w metodzie _initialize_screens:
+        try:
+            self.db_module.signals.data_loaded.disconnect(
+                self.screen_analyze.handle_async_data_loaded
+            )
+        except RuntimeError:
+            # Sygnał nie był wcześniej podpięty, to normalne przy pierwszym uruchomieniu
+            pass
+
         self.db_module.signals.data_loaded.connect(
             self.screen_analyze.handle_async_data_loaded
         )
@@ -90,37 +99,59 @@ class CyberTrener(AppWindow):
         QMessageBox.information(self, "Sukces", f"Seria zapisana w:\n{file_path}")
         self.switch_to_screen("create_set")
 
-    def _load_training_data_action(self):
-        """Obsługa asynchronicznego żądania odczytu danych z pliku DB."""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Wybierz plik bazy danych SQLite do odczytu",
-            "",
-            "Baza danych (*.db);;Wszystkie pliki (*)",
-        )
-        if not file_path:
-            return
+    def _load_training_data_action(self, db_path=None):
+        """Asynchronicznie ładuje dane serii z bazy danych do tabeli historii i cache.
 
-        self._ensure_db_thread_is_alive(file_path)
+        POPRAWKA: Dodano opcjonalny argument db_path, aby uniknąć ponownego
+        otwierania okna wyboru pliku.
+        """
+        # 1. Jeśli ścieżka NIE została przekazana z zewnątrz, dopiero wtedy pytamy użytkownika
+        if not db_path:
+            from PySide6.QtWidgets import QFileDialog
+
+            db_path, _ = QFileDialog.getOpenFileName(
+                self,
+                "Wybierz plik bazy danych z treningami",
+                "",
+                "Baza danych SQLite (*.db *.sqlite);;Wszystkie pliki (*)",
+            )
+            # Jeśli użytkownik zamknął okno bez wyboru pliku, przerywamy akcję
+            if not db_path:
+                print("[CyberTrener] Anulowano wybór bazy danych przy ładowaniu.")
+                return
+
+        print(f"[Database] Zażądano odczytu z bazy: {db_path}")
+
+        # 2. Ustawiamy ścieżkę w module bazy danych i uruchamiamy wątek (jeśli nie żyje)
+        self.db_module.db_path = db_path
+        if not self.db_module.is_alive():
+            print("Database module started in a separate thread...")
+            self.db_module.start()
+
+        # 3. Wysyłamy właściwe żądanie o pobranie danych z wątku
+        # (Upewnij się, że ta metoda w Twoim db_module nazywa się dokładnie tak, np. request_all_data)
         self.db_module.request_all_data()
-        print(f"[Database] Zażądano odczytu z bazy: {file_path}")
 
     def _handle_db_load_request(self, db_path):
-        """Metoda pośrednicząca, która konfiguruje db_module na konkretny plik bazy danych
+        """Nowa metoda pośrednicząca, która konfiguruje db_module i bezpośrednio
 
-        i wywołuje asynchroniczne ładowanie serii.
+        zleca asynchroniczny odczyt, OMIJAJĄC stare okno dialogowe.
         """
         try:
-            # Sprawdź jak w Twoim DatabaseModule nazywa się metoda ustawiająca plik bazy
-            # Często jest to np. open_database(path), set_db_path(path) lub connect(path)
-            if hasattr(self.db_module, "set_database_file"):
-                self.db_module.set_database_file(db_path)
-            elif hasattr(self.db_module, "connect_to_db"):
-                self.db_module.connect_to_db(db_path)
+            # Ustawiamy plik bazy danych
+            self.db_module.db_path = db_path
 
-            # Po ustawieniu pliku, wywołujemy właściwą akcję ładowania (która na końcu wyemituje sygnał data_loaded)
-            # W Twoim starym kodzie ta metoda w CyberTrener nazywała się self._load_training_data_action
-            self._load_training_data_action()
+            # Jeśli wątek bazy jeszcze nie żyje, odpalamy go
+            if not self.db_module.is_alive():
+                self.db_module.start()
+
+            # !!! KLUCZOWA POPRAWKA !!!
+            # Zamiast odpalać samą funkcję self._load_training_data_action(),
+            # która ma w środku zaszyte okno dialogowe, bezpośrednio wysyłamy
+            # żądanie do publicznego API Twojego DatabaseModule:
+            self.db_module.request_all_data()
+
+            print(f"[Database] Zażądano asynchronicznego odczytu z bazy: {db_path}")
 
         except Exception as e:
             print(
