@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QStackedWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -311,15 +312,24 @@ class AnalyzeProgressScreen(Screen):
         lbl_info.setAlignment(Qt.AlignCenter)
         layout.addWidget(lbl_info)
 
-        # Nasz widget wykresów
+        # !!! NOWOŚĆ: Stos widżetów do przełączania widoków (Drzewo <-> Wykres) !!!
+        self.display_stack = QStackedWidget()
+
+        # Widżet 1: Oryginalna historia (Drzewo)
+        self.history_widget = TrainingDataHistoryWidget()
+        self.display_stack.addWidget(self.history_widget)
+
+        # Widżet 2: Wykresy (QtCharts)
         self.chart_widget = ProgressChartWidget()
-        layout.addWidget(self.chart_widget)
+        self.display_stack.addWidget(self.chart_widget)
+
+        layout.addWidget(self.display_stack)
 
         super().__init__(container)
 
         self.load_data_cb = load_data_action_cb
         self.get_db_conn = get_db_connection_cb
-        self.cached_sets_data = []  # Pamięć podręczna na dane z bazy
+        self.cached_sets_data = []
 
         # Rejestracja opcji menu bocznego
         self.add_option("Wczytaj dane treningowe", self._load_training_data)
@@ -327,10 +337,13 @@ class AnalyzeProgressScreen(Screen):
         self.add_option("Ilość powtórzeń", self._analyze_reps_count)
         self.add_option("Czas trwania serii", self._analyze_duration)
         self.add_option("Liczba serii w ciągu dnia", self._analyze_sets_per_day)
+        self.add_option(
+            "Pokaż historię (Drzewo)", self._show_history_tree
+        )  # NOWA OPCJA POWROTU DO DRZEWA
         self.add_option("Wróć", lambda: navigator_cb("main_page"))
 
     def _load_training_data(self):
-        """Wywoływane TYLKO po kliknięciu przycisku 'Wczytaj dane treningowe'."""
+        """Wywoływane po kliknięciu przycisku 'Wczytaj dane treningowe'."""
         file_path, _ = QFileDialog.getOpenFileName(
             self.content_widget,
             "Wybierz plik bazy danych z treningami",
@@ -339,41 +352,71 @@ class AnalyzeProgressScreen(Screen):
         )
 
         if not file_path:
-            print("[Analiza] Anulowano wybór bazy danych.")
             return
 
-        print(f"[Analiza] Wybrano bazę danych: {file_path}")
+        # !!! TUTAJ CZYŚCIMY CAŁY CACHE I WIDOK PRZED NOWYM ZAŁADOWANIEM !!!
+        self.cached_sets_data = []
+        self._show_history_tree()
+        self.history_widget.clear()
 
-        # Czyszczenie i ustawienie statusu oczekiwania
-        self.chart_widget.clear_chart()
-        self.chart_widget.chart.setTitle("Wczytywanie danych z bazy... Proszę czekać.")
-        self.chart_widget.chart.setTitleBrush(QColor("#ffcc00"))
+        # Opcjonalny komunikat o ładowaniu danych
+        loading_item = QTreeWidgetItem(self.history_widget)
+        loading_item.setText(0, "⌛ Wczytywanie danych z bazy... Proszę czekać.")
+        loading_item.setForeground(0, QBrush(QColor("#ffcc00")))
 
-        # Wymuszenie asynchronicznego ładowania przez główny moduł
         if self.load_data_cb:
             self.load_data_cb(file_path)
 
     def handle_async_data_loaded(self, raw_sets_data):
-        """Slot wywoływany automatycznie, gdy db_module skończy czytać plik .db."""
-        self.cached_sets_data = raw_sets_data
-        print(
-            f"[Analiza] Sukces! Odebrano {len(self.cached_sets_data)} serii z bazy danych."
-        )
+        """Slot wywoływany automatycznie przy każdym odebranym pakiecie danych z db_module."""
 
-        # Informujemy użytkownika na wykresie, że dane są już w pamięci programu
-        self.chart_widget.clear_chart()
-        self.chart_widget.chart.setTitle(
-            "Dane załadowane pomyślnie! Wybierz typ wykresu z menu bocznego."
-        )
-        self.chart_widget.chart.setTitleBrush(QColor("#00cc66"))
+        # 1. Sprawdzamy co przysłał db_module.
+        # Jeśli to pojedyncza seria (słownik lub krotka), dodajemy ją do naszego bufora w RAM
+        if isinstance(raw_sets_data, (dict, tuple, list)) and not isinstance(
+            raw_sets_data, list
+        ):
+            # Wyciągamy unikalny wyróżnik (datę), aby uniknąć duplikacji w buforze
+            exec_date = (
+                raw_sets_data.get("metadata", {}).get("date")
+                if isinstance(raw_sets_data, dict)
+                else raw_sets_data[1]
+            )
+
+            # Sprawdzamy czy mamy już serię z tą datą w cache
+            istnieje = False
+            for s in self.cached_sets_data:
+                S_date = (
+                    s.get("metadata", {}).get("date") if isinstance(s, dict) else s[1]
+                )
+                if S_date == exec_date:
+                    istnieje = True
+                    break
+
+            if not istnieje:
+                self.cached_sets_data.append(raw_sets_data)
+
+        elif isinstance(raw_sets_data, list):
+            # Jeśli db_module przysłałby jednak całą listę naraz (lub to lista powtórzeń)
+            # Sprawdzamy czy to lista słowników/krotek serii, czy coś innego
+            if raw_sets_data and isinstance(raw_sets_data[0], (dict, tuple)):
+                self.cached_sets_data = raw_sets_data
+            else:
+                # Jeśli to dziwny format, na wszelki wypadek zabezpieczamy dane
+                if raw_sets_data not in self.cached_sets_data:
+                    self.cached_sets_data.append(raw_sets_data)
+
+        # 2. Przekazujemy do manual_set_widget ZAWSZE pełną, skumulowaną listę serii.
+        # Nawet jeśli metoda .populate_data() wykona .clear(), to i tak zaraz odtworzy
+        # wszystkie dotychczas zebrane serie z naszej listy!
+        if self.cached_sets_data:
+            self.history_widget.populate_data(self.cached_sets_data)
+
+        self._show_history_tree()
 
     def _check_data_ready(self) -> bool:
-        """Metoda pomocnicza sprawdzająca, czy dane są w pamięci.
-
-        JEŻELI DANYCH NIE MA, wyświetla komunikat na wykresie i kończy działanie.
-        NIGDY nie otwiera okna wyboru pliku samodzielnie!
-        """
+        """Pomocnicza weryfikacja dostępności bazy danych."""
         if not self.cached_sets_data:
+            self.display_stack.setCurrentWidget(self.chart_widget)
             self.chart_widget.clear_chart()
             self.chart_widget.chart.setTitle(
                 "Brak danych! Najpierw kliknij 'Wczytaj dane treningowe' i wybierz plik bazy."
@@ -382,25 +425,26 @@ class AnalyzeProgressScreen(Screen):
             return False
         return True
 
+    def _show_history_tree(self):
+        """Przełącza stos widżetów z powrotem na drzewiaste zestawienie danych."""
+        self.display_stack.setCurrentWidget(self.history_widget)
+
     def _analyze_set_quality(self):
         """Wykres jakości serii (procent poprawnego wykonania)."""
         if not self._check_data_ready():
             return
 
+        # Przełączamy stos widżetów na widok wykresu
+        self.display_stack.setCurrentWidget(self.chart_widget)
+
         chart_data = []
         for row in self.cached_sets_data:
             meta = row["metadata"]
-            exec_date = meta["date"]
-            total_reps = meta["total"]
-            correct_reps = meta["correct"]
+            if meta["total"] > 0:
+                quality_percent = (meta["correct"] / meta["total"]) * 100.0
+                chart_data.append((meta["date"], quality_percent))
 
-            if total_reps > 0:
-                quality_percent = (correct_reps / total_reps) * 100.0
-                chart_data.append((exec_date, quality_percent))
-
-        # POPRAWKA: Wymuszamy chronologiczne sortowanie według stringu daty
         chart_data.sort(key=lambda x: x[0])
-
         self.chart_widget.display_line_chart(
             data=chart_data,
             title="Analiza Postępów: Jakość Wykonania Serii",
@@ -413,12 +457,12 @@ class AnalyzeProgressScreen(Screen):
         if not self._check_data_ready():
             return
 
+        self.display_stack.setCurrentWidget(self.chart_widget)
+
         chart_data = [
             (row["metadata"]["date"], row["metadata"]["total"])
             for row in self.cached_sets_data
         ]
-
-        # POPRAWKA: Sortowanie chronologiczne chroni przed liniami widmami
         chart_data.sort(key=lambda x: x[0])
 
         self.chart_widget.display_line_chart(
@@ -432,12 +476,12 @@ class AnalyzeProgressScreen(Screen):
         if not self._check_data_ready():
             return
 
+        self.display_stack.setCurrentWidget(self.chart_widget)
+
         chart_data = [
             (row["metadata"]["date"], row["metadata"]["duration"])
             for row in self.cached_sets_data
         ]
-
-        # POPRAWKA: Sortowanie chronologiczne
         chart_data.sort(key=lambda x: x[0])
 
         self.chart_widget.display_line_chart(
@@ -451,6 +495,8 @@ class AnalyzeProgressScreen(Screen):
         if not self._check_data_ready():
             return
 
+        self.display_stack.setCurrentWidget(self.chart_widget)
+
         daily_counts = {}
         for row in self.cached_sets_data:
             exec_date = row["metadata"]["date"]
@@ -459,7 +505,6 @@ class AnalyzeProgressScreen(Screen):
                 daily_counts[date_only] = daily_counts.get(date_only, 0) + 1
 
         sorted_daily_data = sorted(daily_counts.items())
-
         self.chart_widget.display_bar_chart(
             data=sorted_daily_data,
             title="Analiza Częstotliwości: Liczba Serii Wykonanych w Ciągu Dnia",
