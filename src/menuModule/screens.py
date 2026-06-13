@@ -1,3 +1,4 @@
+import json  # Import wbudowanego modułu JSON
 from datetime import datetime
 
 from PySide6.QtCore import QDateTime, QObject, Qt, Signal
@@ -15,7 +16,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.include.set_data import WorkoutSet
+# Importy klas danych z Twojego projektu
+from src.include.set_data import Repetition, WorkoutSet
 from src.menuModule.date_dialog import DateTimeDialog
 from src.menuModule.manual_set_widget import (
     DurationDialog,
@@ -382,7 +384,6 @@ class AnalyzeProgressScreen(Screen):
 
     def _analyze_set_quality(self):
         """Wykres jakości serii (procent poprawnego wykonania)."""
-        # GWARANCJA: Jeśli danych nie ma, funkcja tylko wyświetli komunikat i wyjdzie (return)
         if not self._check_data_ready():
             return
 
@@ -396,6 +397,9 @@ class AnalyzeProgressScreen(Screen):
             if total_reps > 0:
                 quality_percent = (correct_reps / total_reps) * 100.0
                 chart_data.append((exec_date, quality_percent))
+
+        # POPRAWKA: Wymuszamy chronologiczne sortowanie według stringu daty
+        chart_data.sort(key=lambda x: x[0])
 
         self.chart_widget.display_line_chart(
             data=chart_data,
@@ -414,6 +418,9 @@ class AnalyzeProgressScreen(Screen):
             for row in self.cached_sets_data
         ]
 
+        # POPRAWKA: Sortowanie chronologiczne chroni przed liniami widmami
+        chart_data.sort(key=lambda x: x[0])
+
         self.chart_widget.display_line_chart(
             data=chart_data,
             title="Analiza Postępów: Liczba Powtórzeń w Seriach",
@@ -429,6 +436,9 @@ class AnalyzeProgressScreen(Screen):
             (row["metadata"]["date"], row["metadata"]["duration"])
             for row in self.cached_sets_data
         ]
+
+        # POPRAWKA: Sortowanie chronologiczne
+        chart_data.sort(key=lambda x: x[0])
 
         self.chart_widget.display_line_chart(
             data=chart_data,
@@ -473,10 +483,14 @@ class ManualDefinitionScreen(Screen, QObject):
         self.manual_preview = ManualPreviewWidget()
         super().__init__(self.manual_preview)
 
+        # Rejestracja opcji menu bocznego (ZMIANA NA JSON)
         self.add_option("📍 Lokalizacja", self._set_manual_location)
         self.add_option("⏱ Czas trwania serii", self._set_manual_duration)
         self.add_option("📅 Data i godzina", self._set_manual_datetime)
         self.add_option("＋ Dodaj powtórzenie", self._add_manual_repetition)
+        self.add_option(
+            "📥 Importuj z JSON", self._import_from_json
+        )  # POPRAWIONE NA JSON
         self.add_option("💾 Zapisz do bazy", self._save_manual_to_db)
         self.add_option("⬅ Wróć", lambda: self.navigator_cb("create_set"))
 
@@ -523,7 +537,7 @@ class ManualDefinitionScreen(Screen, QObject):
 
     def _set_manual_datetime(self):
         dialog = DateTimeDialog(parent=self.parent_widget)
-        if dialog.exec() == DateTimeDialog.Accepted:
+        if dialog.exec() == DurationDialog.Accepted:
             self.manual_set.execution_date = dialog.get_date_string()
             self._refresh_right_preview()
 
@@ -532,6 +546,176 @@ class ManualDefinitionScreen(Screen, QObject):
         if dialog.exec() == RepetitionDialog.Accepted:
             self.manual_set.add_repetition(dialog.get_data())
             self._refresh_right_preview()
+
+    def _import_from_json(self):
+        """Wczytuje serie z JSON i zapisuje bezpośrednio do Twojej bazy danych SQLite (tabele 'sets' i 'repetitions'),
+        całkowicie eliminując pętle okien modalnych.
+        """
+        import sqlite3  # Import lokalny dla bezpieczeństwa
+
+        # 1. Wybór pliku źródłowego JSON
+        json_path, _ = QFileDialog.getOpenFileName(
+            self.content_widget,
+            "Wybierz plik JSON ze strukturą serii",
+            "",
+            "Pliki JSON (*.json)",
+        )
+        if not json_path:
+            return
+
+        # 2. Jednorazowe pytanie o bazę docelową
+        db_path, _ = QFileDialog.getSaveFileName(
+            self.content_widget,
+            "Wybierz plik docelowej bazy danych (.db) lub utwórz nowy",
+            "",
+            "Baza danych SQLite (*.db *.sqlite);;Wszystkie pliki (*)",
+        )
+        if not db_path:
+            return
+
+        conn = None
+        try:
+            # Wczytanie i parsowanie pliku JSON
+            with open(json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            if isinstance(data, dict):
+                series_list = [data]
+            elif isinstance(data, list):
+                series_list = data
+            else:
+                raise ValueError(
+                    "Niepoprawna struktura JSON. Oczekiwano słownika lub listy."
+                )
+
+            # 3. BEZPOŚREDNIE POŁĄCZENIE Z BAZĄ SQLITE - TWOJA STRUKTURA
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+
+            # Aktywujemy klucze obce
+            cursor.execute("PRAGMA foreign_keys = ON;")
+
+            # Upewniamy się, że tabele istnieją (dokładna kopia Twojej definicji)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    execution_date TEXT, location TEXT, duration_seconds INTEGER,
+                    total_reps INTEGER, correct_reps INTEGER, faulty_reps INTEGER
+                )""")
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS repetitions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, set_id INTEGER,
+                    execution_speed_seconds REAL, quality_status TEXT,
+                    error_too_shallow INTEGER, error_too_far_from_chair INTEGER, error_lacks_tempo_control INTEGER,
+                    FOREIGN KEY(set_id) REFERENCES sets(id) ON DELETE CASCADE
+                )""")
+
+            saved_counter = 0
+
+            # Przetwarzamy każdą serię z pliku JSON
+            for item_data in series_list:
+                metadata = item_data.get("metadata", {})
+                xml_date = metadata.get("date", "")
+                xml_loc = metadata.get("location", "Import JSON")
+                xml_dur = int(metadata.get("duration_seconds", 0))
+
+                if not xml_date:
+                    xml_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                repetitions_list = item_data.get("repetitions", [])
+                if not repetitions_list:
+                    continue  # Pomiń puste serie
+
+                # Wyliczamy statystyki serii wymagane przez Twoją tabelę 'sets'
+                total_reps = len(repetitions_list)
+                correct_reps = sum(
+                    1 for r in repetitions_list if r.get("quality") == "Correct"
+                )
+                faulty_reps = total_reps - correct_reps
+
+                # Wstawienie rekordu do tabeli 'sets'
+                cursor.execute(
+                    """
+                    INSERT INTO sets (execution_date, location, duration_seconds, total_reps, correct_reps, faulty_reps)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                    (xml_date, xml_loc, xml_dur, total_reps, correct_reps, faulty_reps),
+                )
+
+                set_id = (
+                    cursor.lastrowid
+                )  # Pobieramy ID wygenerowane przez Twoją tabelę 'sets'
+
+                # Wstawienie wszystkich powtórzeń do tabeli 'repetitions'
+                for rep_data in repetitions_list:
+                    speed = float(rep_data.get("speed", 2.0))
+                    quality_status = rep_data.get("quality", "Correct")
+
+                    errors = rep_data.get("errors", {})
+                    # Mapowanie nowych błędów na kolumny w Twojej bazie danych:
+                    # legs_bent -> za płytko, rozstaw rąk -> za daleko od krzesła, brak tempa -> lacks tempo
+                    error_too_shallow = 1 if bool(errors.get("legs_bent", False)) else 0
+                    error_too_far_from_chair = (
+                        1
+                        if (
+                            bool(errors.get("too_narrow", False))
+                            or bool(errors.get("too_wide", False))
+                        )
+                        else 0
+                    )
+                    error_lacks_tempo_control = (
+                        1 if bool(errors.get("bad_torso_angle", False)) else 0
+                    )
+
+                    cursor.execute(
+                        """
+                        INSERT INTO repetitions (
+                            set_id, execution_speed_seconds, quality_status, 
+                            error_too_shallow, error_too_far_from_chair, error_lacks_tempo_control
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                        (
+                            set_id,
+                            speed,
+                            quality_status,
+                            error_too_shallow,
+                            error_too_far_from_chair,
+                            error_lacks_tempo_control,
+                        ),
+                    )
+
+                saved_counter += 1
+
+            # Zatwierdzamy całą transakcję
+            conn.commit()
+
+            # Reset podglądu interfejsu
+            self.reset_set()
+
+            # Powiadomienie głównego db_module o nowej bazie w celu odświeżenia struktur
+            if hasattr(self.parent_widget, "db_module"):
+                self.parent_widget.db_module.db_path = db_path
+                if hasattr(self.parent_widget.db_module, "request_all_data"):
+                    self.parent_widget.db_module.request_all_data()
+
+            QMessageBox.information(
+                self.parent_widget,
+                "Sukces importu",
+                f"Pomyślnie przetworzono plik JSON!\n"
+                f"Zapisano {saved_counter} serii bezpośrednio do bazy danych:\n{db_path}",
+            )
+
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            QMessageBox.critical(
+                self.parent_widget,
+                "Błąd zapisu bazy",
+                f"Wystąpił problem podczas bezpośredniego zapisu do struktur Twojej bazy danych:\n{str(e)}",
+            )
+        finally:
+            if conn:
+                conn.close()
 
     def _save_manual_to_db(self):
         if not self.manual_set.repetitions:
@@ -547,5 +731,5 @@ class ManualDefinitionScreen(Screen, QObject):
                 "%Y-%m-%d %H:%M:%S"
             )
 
-        # Emitujemy obiekt serii do głównej klasy, która zajmie się plikami i bazą danych
+        # Emitujemy obiekt serii do głównej klasy
         self.save_requested.emit(self.manual_set)
