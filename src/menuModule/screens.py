@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtCore import QDateTime, QObject, Qt, Signal
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -295,9 +296,12 @@ class LoadSetScreen(Screen):
 
 
 class AnalyzeProgressScreen(Screen):
-
-    def __init__(self, navigator_cb, get_db_connection_cb):
-        """get_db_connection_cb: funkcja callback zwracająca otwarte połączenie sqlite3 (conn)"""
+    def __init__(self, navigator_cb, load_data_action_cb, get_db_connection_cb=None):
+        """
+        navigator_cb: powrót do ekranu głównego
+        load_data_action_cb: funkcja z cyberTrener.py, która przyjmuje ścieżkę do pliku .db i mówi db_module, żeby wczytał dane
+        get_db_connection_cb: opcjonalny callback do bezpośrednich zapytań synchronicznych (np. wykres słupkowy)
+        """
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(10, 10, 10, 10)
@@ -309,13 +313,13 @@ class AnalyzeProgressScreen(Screen):
         lbl_info.setAlignment(Qt.AlignCenter)
         layout.addWidget(lbl_info)
 
-        # Podmieniamy stary widget historii na nasz zaawansowany moduł wykresów QtCharts
         self.chart_widget = ProgressChartWidget()
         layout.addWidget(self.chart_widget)
 
         super().__init__(container)
 
-        # Referencja do bazy danych
+        # Zapisujemy callbacki
+        self.load_data_cb = load_data_action_cb
         self.get_db_conn = get_db_connection_cb
         self.cached_sets_data = []
 
@@ -327,6 +331,53 @@ class AnalyzeProgressScreen(Screen):
         self.add_option("Liczba serii w ciągu dnia", self._analyze_sets_per_day)
         self.add_option("Wróć", lambda: navigator_cb("main_page"))
 
+    def _load_training_data(self):
+        """Otwiera okno modalne do wyboru pliku bazy danych i inicjalizuje ładowanie."""
+        # FIX: Używamy self.content_widget jako poprawnego rodzica typu QWidget dla okna modalnego
+        file_path, _ = QFileDialog.getOpenFileName(
+            self.content_widget,
+            "Wybierz plik bazy danych z treningami",
+            "",
+            "Baza danych SQLite (*.db *.sqlite);;Wszystkie pliki (*)",
+        )
+
+        # Jeśli użytkownik zamknął okno i nie wybrał pliku, przerywamy
+        if not file_path:
+            print("[Analiza] Anulowano wybór bazy danych.")
+            return
+
+        print(f"[Analiza] Wybrano bazę danych: {file_path}")
+
+        # Informacja na wykresie o trwającym procesie wczytywania
+        self.chart_widget.clear_chart()
+        self.chart_widget.chart.setTitle("Wczytywanie danych z bazy... Proszę czekać.")
+        self.chart_widget.chart.setTitleBrush(QColor("#ffcc00"))
+
+        # Wywołanie callbacku przekazanego z cyberTrener.py, który przekaże ścieżkę do db_module
+        if hasattr(self, "load_data_cb") and self.load_data_cb:
+            self.load_data_cb(file_path)
+        else:
+            print("[Analiza] Błąd: Brak podpiętego callbacku 'load_data_cb'.")
+
+    def handle_async_data_loaded(self, raw_sets_data):
+        """Slot obsługujący sygnał 'data_loaded' z modułu bazy danych.
+
+        Zapisuje dane do cache i informuje użytkownika o gotowości.
+        """
+        # Sprawdzamy format danych - jeśli sygnał zwraca obiekty, mapujemy je na krotki,
+        # a jeśli zwraca surowy wynik fetchall() z SQLite, przypisujemy bezpośrednio:
+        self.cached_sets_data = raw_sets_data
+        print(
+            f"[Analiza] Sygnał odebrany: Załadowano {len(self.cached_sets_data)} rekordów."
+        )
+
+        # Aktualizacja wyglądu wykresu
+        self.chart_widget.clear_chart()
+        self.chart_widget.chart.setTitle(
+            "Dane załadowane pomyślnie! Wybierz typ analizy z menu."
+        )
+        self.chart_widget.chart.setTitleBrush(QColor("#00cc66"))
+
     def _get_db_cursor(self):
         """Pobiera bezpiecznie kursor z połączenia bazy danych."""
         conn = self.get_db_conn()
@@ -334,31 +385,6 @@ class AnalyzeProgressScreen(Screen):
             return conn.cursor()
         print("[Błąd] Brak aktywnego połączenia z bazą danych!")
         return None
-
-    def _load_training_data(self):
-        """Wczytuje surowe dane z tabeli 'sets' do pamięci podręcznej podręcznej."""
-        cursor = self._get_db_cursor()
-        if not cursor:
-            return
-
-        try:
-            # Pobieramy serie posortowane chronologicznie
-            cursor.execute(
-                "SELECT execution_date, duration_seconds, total_reps, correct_reps FROM sets ORDER BY execution_date ASC"
-            )
-            self.cached_sets_data = cursor.fetchall()
-            print(
-                f"[Analiza] Pomyślnie wczytano {len(self.cached_sets_data)} serii treningowych."
-            )
-
-            # Informacja zwrotna na wykresie
-            self.chart_widget.clear_chart()
-            self.chart_widget.chart.setTitle(
-                "Dane wczytane pomyślnie! Wybierz typ analizy z menu."
-            )
-            self.chart_widget.chart.setTitleBrush(QColor("#00cc66"))
-        except Exception as e:
-            print(f"[Błąd] Nie udało się wczytać danych treningowych: {e}")
 
     def _analyze_set_quality(self):
         """Wykres procentu poprawnych powtórzeń w serii na przestrzeni czasu."""

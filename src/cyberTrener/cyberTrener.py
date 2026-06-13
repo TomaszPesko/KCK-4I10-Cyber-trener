@@ -33,18 +33,21 @@ class CyberTrener(AppWindow):
         self.register_screen("create_set", self.screen_create)
 
         # 3. Moduł: Wczytywanie serii
+        # Zgodnie z wcześniejszym etapem, upewnij się, że używasz poprawnej nazwy klasy (np. LoadSetScreen lub Screen)
         self.screen_load = LoadSetScreen(self._handle_navigation)
         self.register_screen("load_set", self.screen_load)
 
         # 4. Moduł: Analiza postępów
         self.screen_analyze = AnalyzeProgressScreen(
-            self._handle_navigation, self._load_training_data_action
+            self._handle_navigation,
+            load_data_action_cb=lambda path: self._handle_db_load_request(path),
+            get_db_connection_cb=lambda: self.db_module.get_connection(),
         )
         self.register_screen("analyze_progress", self.screen_analyze)
 
-        # Połączenie sygnału bazy danych bezpośrednio z widgetem wewnątrz odizolowanego ekranu
+        # Połączenie sygnału powrotnego z bazy danych
         self.db_module.signals.data_loaded.connect(
-            self.screen_analyze.history_widget.populate_data
+            self.screen_analyze.handle_async_data_loaded
         )
 
         # 5. Podmoduł: Ręczne definiowanie serii
@@ -101,6 +104,28 @@ class CyberTrener(AppWindow):
         self._ensure_db_thread_is_alive(file_path)
         self.db_module.request_all_data()
         print(f"[Database] Zażądano odczytu z bazy: {file_path}")
+
+    def _handle_db_load_request(self, db_path):
+        """Metoda pośrednicząca, która konfiguruje db_module na konkretny plik bazy danych
+
+        i wywołuje asynchroniczne ładowanie serii.
+        """
+        try:
+            # Sprawdź jak w Twoim DatabaseModule nazywa się metoda ustawiająca plik bazy
+            # Często jest to np. open_database(path), set_db_path(path) lub connect(path)
+            if hasattr(self.db_module, "set_database_file"):
+                self.db_module.set_database_file(db_path)
+            elif hasattr(self.db_module, "connect_to_db"):
+                self.db_module.connect_to_db(db_path)
+
+            # Po ustawieniu pliku, wywołujemy właściwą akcję ładowania (która na końcu wyemituje sygnał data_loaded)
+            # W Twoim starym kodzie ta metoda w CyberTrener nazywała się self._load_training_data_action
+            self._load_training_data_action()
+
+        except Exception as e:
+            print(
+                f"[CyberTrener] Błąd podczas przekazywania bazy danych do modułu: {e}"
+            )
 
 
 def main():
