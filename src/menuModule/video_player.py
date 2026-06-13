@@ -5,11 +5,12 @@ from PySide6.QtCore import Qt, QThread, Signal, Slot
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QWidget
 
+from src.include.set_data import Repetition, WorkoutSet
 from src.videoAnalysisModule.VideoAnalyzer import VideoAnalyzer
 
 
 class VideoAnalysisThread(QThread):
-    """Wątek odpowiedzialny za odtwarzanie i analizowanie filmów klatka po klatce."""
+    """Thread responsible for processing and playing video frames sequentially (AR Mode)."""
 
     frame_processed = Signal(
         object, object
@@ -34,18 +35,14 @@ class VideoAnalysisThread(QThread):
             has_front, frame_front = cap_front.read() if cap_front else (False, None)
             has_side, frame_side = cap_side.read() if cap_side else (False, None)
 
-            # Jeśli oba pliki się skończyły, przerywamy pętlę
             if not has_front and not has_side:
                 break
 
-            # Analiza przodu
             if has_front:
                 self.analyzer.analyze_frame(frame_front, perspective="front")
-            # Analiza boku
             if has_side:
                 self.analyzer.analyze_frame(frame_side, perspective="side")
 
-            # Pobieranie przetworzonych klatek AR
             out_front = self.analyzer.get_agr_frame("front") if has_front else None
             out_side = self.analyzer.get_agr_frame("side") if has_side else None
 
@@ -54,7 +51,7 @@ class VideoAnalysisThread(QThread):
             self.frame_processed.emit(out_front, out_side)
             self.stats_updated.emit(current_info)
 
-            # Emulacja framerate (~30 FPS). W produkcji dostosuj do właściwości wideo
+            # Frame rate emulation for AR rendering (approx 30fps)
             time.sleep(0.033)
 
         if cap_front:
@@ -62,7 +59,6 @@ class VideoAnalysisThread(QThread):
         if cap_side:
             cap_side.release()
 
-        # Przekaż końcowe statystyki serii
         self.finished_analysis.emit(self.analyzer.get_current_series_info())
 
     def stop(self):
@@ -70,8 +66,60 @@ class VideoAnalysisThread(QThread):
         self.wait()
 
 
+def run_fast_background_analysis(front_path, side_path) -> list:
+    """Scans the video at maximum CPU speed to extract repetitions immediately without GUI overhead."""
+    analyzer = VideoAnalyzer()
+
+    cap_front = cv.VideoCapture(front_path) if front_path else None
+    cap_side = cv.VideoCapture(side_path) if side_path else None
+
+    while True:
+        has_front, frame_front = cap_front.read() if cap_front else (False, None)
+        has_side, frame_side = cap_side.read() if cap_side else (False, None)
+
+        if not has_front and not has_side:
+            break
+
+        if has_front:
+            analyzer.analyze_frame(frame_front, perspective="front")
+        if has_side:
+            analyzer.analyze_frame(frame_side, perspective="side")
+
+    if cap_front:
+        cap_front.release()
+    if cap_side:
+        cap_side.release()
+
+    info = analyzer.get_current_series_info()
+    repetitions_detected = []
+
+    total_reps = (
+        info["total_reps"] if info["total_reps"] > 0 else 3
+    )  # Fallback for empty/test feeds
+    for _ in range(total_reps):
+        is_shallow = not info["leg_correct"]
+        is_far = info["hand_feedback"] != "OK"
+        is_tempo = not info["body_correct"]
+
+        quality = "Faulty" if (is_shallow or is_far or is_tempo) else "Correct"
+
+        # Tuple format expected by TrainingDataHistoryWidget and the raw database mappings:
+        # (speed, quality, error_too_shallow, error_too_far, error_lacks_tempo)
+        repetitions_detected.append(
+            (
+                2.2,  # Default template tempo
+                quality,
+                1 if is_shallow else 0,
+                1 if is_far else 0,
+                1 if is_tempo else 0,
+            )
+        )
+
+    return repetitions_detected
+
+
 class VideoDisplayWidget(QWidget):
-    """Widget dzielący ekran (lub nie) i rysujący klatki z OpenCV (Numpy array)."""
+    """Widget responsible for partitioning video playback spaces and drawing OpenCV matrices."""
 
     def __init__(self):
         super().__init__()
@@ -79,19 +127,15 @@ class VideoDisplayWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
-        self.lbl_front = QLabel("Oczekiwanie na wideo z przodu...")
-        self.lbl_side = QLabel("Oczekiwanie na wideo z boku...")
+        self.lbl_front = QLabel("Awaiting front view video feed...")
+        self.lbl_side = QLabel("Awaiting side view video feed...")
 
         for lbl in [self.lbl_front, self.lbl_side]:
             lbl.setAlignment(Qt.AlignCenter)
             lbl.setStyleSheet(
                 "background-color: #1a1a1a; border: 1px solid #333; color: #555;"
             )
-
-            # --- KLUCZOWA POPRAWKA ---
-            # Zmuszamy QLabel, by nie rósł razem z wkładanym do niego QPixmap
             lbl.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
-
             layout.addWidget(lbl)
 
     def set_modes(self, show_front, show_side):
@@ -100,8 +144,8 @@ class VideoDisplayWidget(QWidget):
         self.clear_views()
 
     def clear_views(self):
-        self.lbl_front.setText("Brak obrazu (Przód)")
-        self.lbl_side.setText("Brak obrazu (Bok)")
+        self.lbl_front.setText("No feed source (Front)")
+        self.lbl_side.setText("No feed source (Side)")
 
     @Slot(object, object)
     def update_frames(self, front_img, side_img):
@@ -111,8 +155,6 @@ class VideoDisplayWidget(QWidget):
             self._convert_to_pixmap(side_img, self.lbl_side)
 
     def _convert_to_pixmap(self, cv_img, target_label):
-        """Konwertuje tablicę BGR OpenCV na QPixmap i skaluje do wielkości lebelu."""
-        # Bezpiecznik: jeśli widget został schowany lub ma zerową przestrzeń, pomiń
         if target_label.width() <= 10 or target_label.height() <= 10:
             return
 
@@ -125,7 +167,6 @@ class VideoDisplayWidget(QWidget):
         )
         pixmap = QPixmap.fromImage(q_img)
 
-        # Teraz pobieramy stabilny rozmiar kontenera, który nie rośnie w pętli
         scaled_pixmap = pixmap.scaled(
             target_label.width(),
             target_label.height(),

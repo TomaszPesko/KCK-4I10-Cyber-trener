@@ -10,14 +10,13 @@ class VideoAnalyzer:
         self.mp_pose = mp.solutions.pose
         self.mp_draw = mp.solutions.drawing_utils
 
-        # Jeden detektor MediaPipe na instancję (lub osobne dla wątków - te ustawienia są ok)
-        self.pose_detector = self.mp_pose.Pose(
+        # POPRAWKA: Dwa osobne detektory zapobiegają gubieniu trackingu między klatkami Przód/Bok
+        self.pose_detector_front = self.mp_pose.Pose(
             min_detection_confidence=0.5, min_tracking_confidence=0.5
         )
-
-        # Inicjalizacja procesorów dedykowanych
-        self.front_proc = FrontProcessor()
-        self.side_proc = SideProcessor()
+        self.pose_detector_side = self.mp_pose.Pose(
+            min_detection_confidence=0.5, min_tracking_confidence=0.5
+        )
 
         self.reset()
 
@@ -30,18 +29,16 @@ class VideoAnalyzer:
 
     def analyze_frame(self, frame, perspective="front"):
         rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
-        result = self.pose_detector.process(rgb)
 
         if perspective == "front":
             self.last_front_frame = frame.copy()
+            result = self.pose_detector_front.process(rgb)
             if result.pose_landmarks:
-                # Najpierw rysujemy domyślny szkielet MP
                 self.mp_draw.draw_landmarks(
                     self.last_front_frame,
                     result.pose_landmarks,
                     self.mp_pose.POSE_CONNECTIONS,
                 )
-                # Potem Twoja autorska logika i panele tekstowe
                 self.last_front_frame = self.front_proc.process(
                     self.last_front_frame,
                     result.pose_landmarks.landmark,
@@ -51,6 +48,7 @@ class VideoAnalyzer:
 
         elif perspective == "side":
             self.last_side_frame = frame.copy()
+            result = self.pose_detector_side.process(rgb)
             if result.pose_landmarks:
                 self.mp_draw.draw_landmarks(
                     self.last_side_frame,
@@ -64,7 +62,7 @@ class VideoAnalyzer:
                     self.mp_draw,
                 )
 
-        # Prosta synchronizacja sumaryczna
+        # Synchronizacja liczników
         self.total_reps = max(self.front_proc.rep_count, self.side_proc.rep_count)
 
     def get_agr_frame(self, perspective="front"):
