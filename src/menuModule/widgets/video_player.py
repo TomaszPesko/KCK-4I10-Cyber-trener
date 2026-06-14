@@ -10,18 +10,20 @@ from src.videoAnalysisModule.VideoAnalyzer import VideoAnalyzer
 
 
 class VideoAnalysisThread(QThread):
-    """Thread responsible for processing and playing video frames sequentially (AR Mode)."""
-
-    frame_processed = Signal(
-        object, object
-    )  # (front_frame_or_none, side_frame_or_none)
+    frame_processed = Signal(object, object)
     stats_updated = Signal(dict)
     finished_analysis = Signal(dict)
 
-    def __init__(self, front_path=None, side_path=None):
+    def __init__(
+        self, front_path=None, side_path=None, f_start=0, f_end=0, s_start=0, s_end=0
+    ):
         super().__init__()
         self.front_path = front_path
         self.side_path = side_path
+        self.f_start = f_start
+        self.f_end = f_end
+        self.s_start = s_start
+        self.s_end = s_end
         self._is_running = True
         self.analyzer = VideoAnalyzer()
 
@@ -29,29 +31,48 @@ class VideoAnalysisThread(QThread):
         cap_front = cv.VideoCapture(self.front_path) if self.front_path else None
         cap_side = cv.VideoCapture(self.side_path) if self.side_path else None
 
+        # Ustawienie precyzyjnego punktu startowego dla każdej perspektywy
+        if cap_front:
+            cap_front.set(cv.CAP_PROP_POS_FRAMES, self.f_start)
+        if cap_side:
+            cap_side.set(cv.CAP_PROP_POS_FRAMES, self.s_start)
+
         self.analyzer.reset()
 
         while self._is_running:
-            has_front, frame_front = cap_front.read() if cap_front else (False, None)
-            has_side, frame_side = cap_side.read() if cap_side else (False, None)
+            # Pobieramy aktualne indeksy klatek PRZED odczytem
+            current_f = int(cap_front.get(cv.CAP_PROP_POS_FRAMES)) if cap_front else 0
+            current_s = int(cap_side.get(cv.CAP_PROP_POS_FRAMES)) if cap_side else 0
 
+            # Warunek logiczny: czytamy klatkę tylko, jeśli nie przekroczyliśmy indeksu granicznego (f_end / s_end)
+            has_front, frame_front = (
+                cap_front.read()
+                if (cap_front and current_f <= self.f_end)
+                else (False, None)
+            )
+            has_side, frame_side = (
+                cap_side.read()
+                if (cap_side and current_s <= self.s_end)
+                else (False, None)
+            )
+
+            # Jeśli oba strumienie osiągnęły koniec wyznaczonego suwakami zasięgu, kończymy wątek
             if not has_front and not has_side:
                 break
 
-            if has_front:
-                self.analyzer.analyze_frame(frame_front, perspective="front")
-            if has_side:
-                self.analyzer.analyze_frame(frame_side, perspective="side")
+            # Przekazanie klatek do kolejki synchronizacyjnej analizatora
+            self.analyzer.queue_frames(frame_front, frame_side)
+            self.analyzer.process_next_synced_step()
 
-            out_front = self.analyzer.get_agr_frame("front") if has_front else None
-            out_side = self.analyzer.get_agr_frame("side") if has_side else None
-
+            out_front = self.analyzer.get_agr_frame("front")
+            out_side = self.analyzer.get_agr_frame("side")
             current_info = self.analyzer.get_current_series_info()
 
+            # Emisja sygnałów renderowania AR do interfejsu PySide6
             self.frame_processed.emit(out_front, out_side)
             self.stats_updated.emit(current_info)
 
-            # Frame rate emulation for AR rendering (approx 30fps)
+            # Emulacja framerate dla stabilnego odtwarzania
             time.sleep(0.033)
 
         if cap_front:
@@ -66,24 +87,36 @@ class VideoAnalysisThread(QThread):
         self.wait()
 
 
-def run_fast_background_analysis(front_path, side_path) -> list:
-    """Scans the video at maximum CPU speed to extract repetitions immediately without GUI overhead."""
+def run_fast_background_analysis(
+    front_path, side_path, f_start=0, f_end=0, s_start=0, s_end=0
+) -> dict:
+    """Ekspresowo analizuje wycięty fragment klatek w poszukiwaniu powtórzeń i błędów."""
     analyzer = VideoAnalyzer()
 
     cap_front = cv.VideoCapture(front_path) if front_path else None
     cap_side = cv.VideoCapture(side_path) if side_path else None
 
+    if cap_front:
+        cap_front.set(cv.CAP_PROP_POS_FRAMES, f_start)
+    if cap_side:
+        cap_side.set(cv.CAP_PROP_POS_FRAMES, s_start)
+
     while True:
-        has_front, frame_front = cap_front.read() if cap_front else (False, None)
-        has_side, frame_side = cap_side.read() if cap_side else (False, None)
+        curr_f = int(cap_front.get(cv.CAP_PROP_POS_FRAMES)) if cap_front else 0
+        curr_s = int(cap_side.get(cv.CAP_PROP_POS_FRAMES)) if cap_side else 0
+
+        has_front, frame_front = (
+            cap_front.read() if (cap_front and curr_f <= f_end) else (False, None)
+        )
+        has_side, frame_side = (
+            cap_side.read() if (cap_side and curr_s <= s_end) else (False, None)
+        )
 
         if not has_front and not has_side:
             break
 
-        if has_front:
-            analyzer.analyze_frame(frame_front, perspective="front")
-        if has_side:
-            analyzer.analyze_frame(frame_side, perspective="side")
+        analyzer.queue_frames(frame_front, frame_side)
+        analyzer.process_next_synced_step()
 
     if cap_front:
         cap_front.release()
@@ -93,21 +126,16 @@ def run_fast_background_analysis(front_path, side_path) -> list:
     info = analyzer.get_current_series_info()
     repetitions_detected = []
 
-    total_reps = (
-        info["total_reps"] if info["total_reps"] > 0 else 3
-    )  # Fallback for empty/test feeds
+    total_reps = info["total_reps"]
     for _ in range(total_reps):
         is_shallow = not info["leg_correct"]
         is_far = info["hand_feedback"] != "OK"
         is_tempo = not info["body_correct"]
-
         quality = "Faulty" if (is_shallow or is_far or is_tempo) else "Correct"
 
-        # Tuple format expected by TrainingDataHistoryWidget and the raw database mappings:
-        # (speed, quality, error_too_shallow, error_too_far, error_lacks_tempo)
         repetitions_detected.append(
             (
-                2.2,  # Default template tempo
+                2.2,
                 quality,
                 1 if is_shallow else 0,
                 1 if is_far else 0,
@@ -115,7 +143,7 @@ def run_fast_background_analysis(front_path, side_path) -> list:
             )
         )
 
-    return repetitions_detected
+    return {"reps": repetitions_detected, "mismatch": info["mismatch_detected"]}
 
 
 class VideoDisplayWidget(QWidget):

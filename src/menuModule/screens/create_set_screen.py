@@ -1,4 +1,4 @@
-from src.menuModule.screens.base_screens import BaseScreen
+from src.menuModule.screens.base_screen import BaseScreen
 
 
 class CreateSetScreen(BaseScreen):
