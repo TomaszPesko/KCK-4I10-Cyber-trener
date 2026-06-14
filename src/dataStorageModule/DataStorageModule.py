@@ -1,4 +1,3 @@
-# ==> ./dataStorageModule/DataStorageModule.py <==
 import queue
 import sqlite3
 import threading
@@ -20,6 +19,23 @@ class DatabaseModule(threading.Thread):
         self.daemon = True
         self.conn = None
         self.signals = DatabaseSignals()
+        self._current_conn_path = None  # Tracks the currently bound database file
+
+    def _verify_and_sync_connection(self):
+        """Ensures the SQLite handler points to the currently selected database file path."""
+        # If the path changed, close the old connection safely
+        if self.conn and self._current_conn_path != self.db_path:
+            print(
+                f"[Database] Switching database source path from {self._current_conn_path} -> {self.db_path}"
+            )
+            self.conn.close()
+            self.conn = None
+
+        # Open connection to the new database file path
+        if self.conn is None:
+            self.conn = sqlite3.connect(self.db_path)
+            self._current_conn_path = self.db_path
+            self._initialize_db()
 
     def _initialize_db(self):
         """Creates synchronized domain structure metrics if tables do not exist."""
@@ -29,31 +45,22 @@ class DatabaseModule(threading.Thread):
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS sets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                execution_date TEXT, 
-                location TEXT, 
-                duration_seconds INTEGER,
-                total_reps INTEGER, 
-                correct_reps INTEGER, 
-                faulty_reps INTEGER
+                execution_date TEXT, location TEXT, duration_seconds INTEGER,
+                total_reps INTEGER, correct_reps INTEGER, faulty_reps INTEGER
             )""")
 
         # Unified tracking structure with explicit boolean binary flag errors
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS repetitions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                set_id INTEGER,
-                execution_speed_seconds REAL, 
-                quality_status TEXT,
-                error_too_shallow INTEGER, 
-                error_too_far_from_chair INTEGER, 
-                error_lacks_tempo_control INTEGER,
+                id INTEGER PRIMARY KEY AUTOINCREMENT, set_id INTEGER,
+                execution_speed_seconds REAL, quality_status TEXT,
+                error_too_shallow INTEGER, error_too_far_from_chair INTEGER, error_lacks_tempo_control INTEGER,
                 FOREIGN KEY(set_id) REFERENCES sets(id) ON DELETE CASCADE
             )""")
         self.conn.commit()
 
     def run(self):
-        self.conn = sqlite3.connect(self.db_path)
-        self._initialize_db()
+        print("Database module background loop entered successfully.")
 
         try:
             while True:
@@ -64,6 +71,9 @@ class DatabaseModule(threading.Thread):
                 task_type, data, *callback = task
 
                 try:
+                    # CRITICAL: Verify path updates before running any transactional tasks
+                    self._verify_and_sync_connection()
+
                     if task_type == "SAVE_SET":
                         self._save_set_to_db(data)
                     elif task_type == "GET_STATISTICS":
@@ -72,6 +82,7 @@ class DatabaseModule(threading.Thread):
                             callback[0](result)
                     elif task_type == "FETCH_ALL_DATA":
                         result = self._fetch_all_sets_and_reps()
+                        # Deliver fresh payload to UI signal handlers
                         self.signals.data_loaded.emit(result)
 
                 except Exception as e:
@@ -104,7 +115,6 @@ class DatabaseModule(threading.Thread):
         set_id = cursor.lastrowid
 
         for r in workout_set.repetitions:
-            # Enforce 1/0 values across all mapped error parameters simultaneously
             cursor.execute(
                 """
                 INSERT INTO repetitions (
@@ -122,6 +132,7 @@ class DatabaseModule(threading.Thread):
                 ),
             )
         self.conn.commit()
+        print(f"-> Saved set ID {set_id} into current path database connection target.")
 
     def _get_statistics_from_db(self):
         cursor = self.conn.cursor()
@@ -172,4 +183,5 @@ class DatabaseModule(threading.Thread):
         self.task_queue.put(("GET_STATISTICS", None, receiving_function))
 
     def request_all_data(self):
+        """Public method called by the user interface."""
         self.task_queue.put(("FETCH_ALL_DATA", None))
