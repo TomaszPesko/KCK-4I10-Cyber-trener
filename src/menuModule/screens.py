@@ -283,22 +283,37 @@ class LoadSetScreen(Screen):
         self._trigger_background_pre_extraction()
 
     def _save_set_to_database(self):
-        """Forwards compiled context variables to the async database worker queue."""
+        """Prompts for target storage paths and forwards compiled objects to the async worker."""
         if not self.front_video_path and not self.side_video_path:
             QMessageBox.critical(
                 self.main_container,
                 "Serialization Halt",
-                "Cannot execute storage query on unverified source tracking sets.",
+                "Cannot execute storage queries on unverified tracking source targets.",
             )
+            return
+
+        db_path, _ = QFileDialog.getSaveFileName(
+            self.main_container,
+            "Select Destination Database File",
+            "",
+            "Database Files (*.db *.sqlite);;All Files (*)",
+        )
+        if not db_path:
             return
 
         window = self.main_container.window()
         if window and hasattr(window, "db_module"):
+            window.db_module.db_path = db_path
+
+            if hasattr(window, "_ensure_db_thread_is_alive"):
+                window._ensure_db_thread_is_alive(db_path)
+
             window.db_module.request_set_save(self.workout_set)
+
             QMessageBox.information(
                 self.main_container,
-                "Success",
-                f"Workout transaction forwarded smoothly to database queue:\n[{self.workout_set.location}] — {len(self.workout_set.repetitions)} loops tracked.",
+                "Transaction Dispatched",
+                f"Workout transaction successfully committed to target database file:\n{db_path}",
             )
             self._on_back_clicked()
 

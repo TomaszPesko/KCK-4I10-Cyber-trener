@@ -24,20 +24,19 @@ class CyberTrener(AppWindow):
         self.switch_to_screen("main_page")
 
     def _initialize_screens(self):
-        # 1. Główny ekran nawigacji
+        # 1. Main navigation screen
         self.screen_main = MainScreen(self._handle_navigation)
         self.register_screen("main_page", self.screen_main)
 
-        # 2. Moduł: Tworzenie serii
+        # 2. Create set module
         self.screen_create = CreateSetScreen(self._handle_navigation)
         self.register_screen("create_set", self.screen_create)
 
-        # 3. Moduł: Wczytywanie serii
-        # Zgodnie z wcześniejszym etapem, upewnij się, że używasz poprawnej nazwy klasy (np. LoadSetScreen lub Screen)
+        # 3. Load set module
         self.screen_load = LoadSetScreen(self._handle_navigation)
         self.register_screen("load_set", self.screen_load)
 
-        # 4. Moduł: Analiza postępów
+        # 4. Progress analysis module
         self.screen_analyze = AnalyzeProgressScreen(
             self._handle_navigation,
             load_data_action_cb=lambda path: self._handle_db_load_request(path),
@@ -45,26 +44,41 @@ class CyberTrener(AppWindow):
         )
         self.register_screen("analyze_progress", self.screen_analyze)
 
-        # Połączenie sygnału powrotnego z bazy danych
-        # W pliku cyberTrener.py w metodzie _initialize_screens:
+        # FIX: Safer signal registration without throwing noisy console RuntimeWarnings
         try:
+            # We explicitly check if slots are registered before trying to sever them
             self.db_module.signals.data_loaded.disconnect(
                 self.screen_analyze.handle_async_data_loaded
             )
-        except RuntimeError:
-            # Sygnał nie był wcześniej podpięty, to normalne przy pierwszym uruchomieniu
+        except (RuntimeError, TypeError):
             pass
 
         self.db_module.signals.data_loaded.connect(
             self.screen_analyze.handle_async_data_loaded
         )
 
-        # 5. Podmoduł: Ręczne definiowanie serii
+        # 5. Manual set entry submodule
         self.screen_manual = ManualDefinitionScreen(
             self._handle_navigation, parent_widget=self
         )
         self.screen_manual.save_requested.connect(self._execute_manual_set_save)
         self.register_screen("manual_definition", self.screen_manual)
+
+    def _execute_manual_set_save(self, workout_set):
+        """Receives a completed WorkoutSet object and serializes it to a database path."""
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Save Workout Database Target", "", "SQLite Database (*.db)"
+        )
+        if not file_path:
+            return
+
+        self._ensure_db_thread_is_alive(file_path)
+        self.db_module.request_set_save(workout_set)
+
+        QMessageBox.information(
+            self, "Success", f"Set saved successfully to target:\n{file_path}"
+        )
+        self.switch_to_screen("create_set")
 
     def _handle_navigation(self, screen_name: str):
         """Centralny punkt zarządzania przełączaniem ekranów."""
@@ -84,20 +98,6 @@ class CyberTrener(AppWindow):
                 self.db_module.start()
             except RuntimeError:
                 pass
-
-    def _execute_manual_set_save(self, workout_set):
-        """Odbiera przygotowany obiekt serii i zapisuje go przy użyciu bazy danych."""
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Zapisz bazę danych", "", "Baza danych (*.db)"
-        )
-        if not file_path:
-            return
-
-        self._ensure_db_thread_is_alive(file_path)
-        self.db_module.request_set_save(workout_set)
-
-        QMessageBox.information(self, "Sukces", f"Seria zapisana w:\n{file_path}")
-        self.switch_to_screen("create_set")
 
     def _load_training_data_action(self, db_path=None):
         """Asynchronicznie ładuje dane serii z bazy danych do tabeli historii i cache.
