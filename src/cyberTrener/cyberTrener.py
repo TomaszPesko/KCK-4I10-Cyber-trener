@@ -4,15 +4,13 @@ from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 from src.dataStorageModule.DataStorageModule import DatabaseModule
 from src.menuModule.menu import AppWindow
+from src.menuModule.screens.analyze_progress_screen import AnalyzeProgressScreen
+from src.menuModule.screens.create_set_screen import CreateSetScreen
+from src.menuModule.screens.load_set_screen import LoadSetScreen
 
-# Import nowo wydzielonych ekranów
-from src.menuModule.screens import (
-    AnalyzeProgressScreen,
-    CreateSetScreen,
-    LoadSetScreen,
-    MainScreen,
-    ManualDefinitionScreen,
-)
+# Updated discrete package imports pointers
+from src.menuModule.screens.main_screen import MainScreen
+from src.menuModule.screens.manual_definition_screen import ManualDefinitionScreen
 
 
 class CyberTrener(AppWindow):
