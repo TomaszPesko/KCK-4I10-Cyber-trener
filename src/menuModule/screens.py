@@ -1,4 +1,4 @@
-import json  # Import wbudowanego modułu JSON
+import json
 from datetime import datetime
 
 from PySide6.QtCore import QDateTime, QObject, Qt, Signal
@@ -16,15 +16,14 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from training_data_history_widget import TrainingDataHistoryWidget
 
-# Importy klas danych z Twojego projektu
 from src.include.set_data import Repetition, WorkoutSet
 from src.menuModule.date_dialog import DateTimeDialog
 from src.menuModule.manual_set_widget import (
     DurationDialog,
     ManualPreviewWidget,
     RepetitionDialog,
-    TrainingDataHistoryWidget,
 )
 from src.menuModule.menu import Screen
 from src.menuModule.progress_chart_widget import ProgressChartWidget
