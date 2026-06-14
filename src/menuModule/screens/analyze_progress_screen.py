@@ -126,6 +126,7 @@ class AnalyzeProgressScreen(Screen):
         self.display_stack.setCurrentWidget(self.history_widget)
 
     def _analyze_set_quality(self):
+        """Calculates fine-grained performance indices based on composite non-error point aggregates."""
         if not self._check_data_ready():
             return
 
@@ -141,35 +142,57 @@ class AnalyzeProgressScreen(Screen):
                 for rep in repetitions:
                     if isinstance(rep, dict):
                         errors_map = rep.get("errors", {})
-                        shallow = 1 if bool(errors_map.get("legs_bent", False)) else 0
+                        shallow = (
+                            1
+                            if bool(errors_map.get("legs_bent", False))
+                            or bool(errors_map.get("too_shallow", False))
+                            else 0
+                        )
                         far = (
                             1
                             if (
                                 bool(errors_map.get("too_narrow", False))
                                 or bool(errors_map.get("too_wide", False))
+                                or bool(errors_map.get("too_far_from_chair", False))
                             )
                             else 0
                         )
                         tempo = (
-                            1 if bool(errors_map.get("bad_torso_angle", False)) else 0
+                            1
+                            if bool(errors_map.get("bad_torso_angle", False))
+                            or bool(errors_map.get("lacks_tempo_control", False))
+                            else 0
                         )
                     else:
-                        shallow = int(rep[4]) if len(rep) > 4 else 0
-                        far = int(rep[5]) if len(rep) > 5 else 0
-                        tempo = int(rep[6]) if len(rep) > 6 else 0
+                        length = len(rep)
+                        if length == 5:
+                            shallow = int(rep[2])
+                            far = int(rep[3])
+                            tempo = int(rep[4])
+                        elif length >= 7:
+                            shallow = int(rep[4])
+                            far = int(rep[5])
+                            tempo = int(rep[6])
+                        else:
+                            shallow = int(rep[1]) if length > 1 else 0
+                            far = 0
+                            tempo = 0
 
                     active_errors_count = shallow + far + tempo
-                    rep_percentage = ((3.0 - active_errors_count) / 3.0) * 100.0
+
+                    # System sportowy rygorystyczny - 1 błąd = oblane powtórzenie (0%)
+                    rep_percentage = 100.0 if active_errors_count == 0 else 0.0
                     total_set_percentage += rep_percentage
 
                 calculated_set_average = total_set_percentage / len(repetitions)
                 chart_data.append((meta["date"], calculated_set_average))
             else:
-                if meta["total"] > 0:
+                if meta.get("total", 0) > 0:
                     ratio_percentage = (meta["correct"] / meta["total"]) * 100.0
                     chart_data.append((meta["date"], ratio_percentage))
 
         chart_data.sort(key=lambda x: x[0])
+
         self.chart_widget.display_line_chart(
             data=chart_data,
             title="Analiza Postępów: Procentowa Jakość Wykonania Powtórzeń",
@@ -215,13 +238,16 @@ class AnalyzeProgressScreen(Screen):
 
         self.display_stack.setCurrentWidget(self.chart_widget)
         daily_counts = {}
+
         for row in self.cached_sets_data:
             exec_date = row["metadata"]["date"]
             if exec_date and len(exec_date) >= 10:
                 date_only = exec_date[:10]
                 daily_counts[date_only] = daily_counts.get(date_only, 0) + 1
 
+        # Sortujemy chronologicznie
         sorted_daily_data = sorted(daily_counts.items())
+
         self.chart_widget.display_bar_chart(
             data=sorted_daily_data,
             title="Analiza Częstotliwości: Liczba Serii Wykonanych w Ciągu Dnia",
