@@ -347,6 +347,7 @@ class AnalyzeProgressScreen(Screen):
         layout = QVBoxLayout(container)
         layout.setContentsMargins(10, 10, 10, 10)
 
+        # UI Label - Kept in Polish
         lbl_info = QLabel("Centrum Statystyk i Historii Treningu")
         lbl_info.setStyleSheet(
             "color: #00cc66; font-size: 20px; font-weight: bold; margin-bottom: 5px;"
@@ -354,14 +355,14 @@ class AnalyzeProgressScreen(Screen):
         lbl_info.setAlignment(Qt.AlignCenter)
         layout.addWidget(lbl_info)
 
-        # !!! NOWOŚĆ: Stos widżetów do przełączania widoków (Drzewo <-> Wykres) !!!
+        # Widget stack switcher layout (Tree vs QtCharts)
         self.display_stack = QStackedWidget()
 
-        # Widżet 1: Oryginalna historia (Drzewo)
+        # Canvas View 1: History breakdown structure (Tree View)
         self.history_widget = TrainingDataHistoryWidget()
         self.display_stack.addWidget(self.history_widget)
 
-        # Widżet 2: Wykresy (QtCharts)
+        # Canvas View 2: Native analytics presentation panels (QtCharts View)
         self.chart_widget = ProgressChartWidget()
         self.display_stack.addWidget(self.chart_widget)
 
@@ -373,19 +374,17 @@ class AnalyzeProgressScreen(Screen):
         self.get_db_conn = get_db_connection_cb
         self.cached_sets_data = []
 
-        # Rejestracja opcji menu bocznego
+        # Context side navigation option configurations - Polish UI Labels
         self.add_option("Wczytaj dane treningowe", self._load_training_data)
         self.add_option("Jakość serii", self._analyze_set_quality)
         self.add_option("Ilość powtórzeń", self._analyze_reps_count)
         self.add_option("Czas trwania serii", self._analyze_duration)
         self.add_option("Liczba serii w ciągu dnia", self._analyze_sets_per_day)
-        self.add_option(
-            "Pokaż historię (Drzewo)", self._show_history_tree
-        )  # NOWA OPCJA POWROTU DO DRZEWA
+        self.add_option("Pokaż historię (Drzewo)", self._show_history_tree)
         self.add_option("Wróć", lambda: navigator_cb("main_page"))
 
     def _load_training_data(self):
-        """Wywoływane po kliknięciu przycisku 'Wczytaj dane treningowe'."""
+        """Triggers system prompts to load local SQLite files and cleans runtime buffers completely."""
         file_path, _ = QFileDialog.getOpenFileName(
             self.content_widget,
             "Wybierz plik bazy danych z treningami",
@@ -396,12 +395,12 @@ class AnalyzeProgressScreen(Screen):
         if not file_path:
             return
 
-        # !!! TUTAJ CZYŚCIMY CAŁY CACHE I WIDOK PRZED NOWYM ZAŁADOWANIEM !!!
-        self.cached_sets_data = []
-        self._show_history_tree()
+        # CRITICAL FIX: Forcefully reset and clear old dataset lists before loading the new database file
+        self.cached_sets_data.clear()
         self.history_widget.clear()
+        self.chart_widget.clear_chart()
+        self._show_history_tree()
 
-        # Opcjonalny komunikat o ładowaniu danych
         loading_item = QTreeWidgetItem(self.history_widget)
         loading_item.setText(0, "⌛ Wczytywanie danych z bazy... Proszę czekać.")
         loading_item.setForeground(0, QBrush(QColor("#ffcc00")))
@@ -410,53 +409,46 @@ class AnalyzeProgressScreen(Screen):
             self.load_data_cb(file_path)
 
     def handle_async_data_loaded(self, raw_sets_data):
-        """Slot wywoływany automatycznie przy każdym odebranym pakiecie danych z db_module."""
-
-        # 1. Sprawdzamy co przysłał db_module.
-        # Jeśli to pojedyncza seria (słownik lub krotka), dodajemy ją do naszego bufora w RAM
-        if isinstance(raw_sets_data, (dict, tuple, list)) and not isinstance(
+        """Asynchronous data stream reception handling target routine slot."""
+        # If it's a single set transaction (Dict or Tuple)
+        if isinstance(raw_sets_data, (dict, tuple)) and not isinstance(
             raw_sets_data, list
         ):
-            # Wyciągamy unikalny wyróżnik (datę), aby uniknąć duplikacji w buforze
             exec_date = (
                 raw_sets_data.get("metadata", {}).get("date")
                 if isinstance(raw_sets_data, dict)
                 else raw_sets_data[1]
             )
 
-            # Sprawdzamy czy mamy już serię z tą datą w cache
-            istnieje = False
-            for s in self.cached_sets_data:
-                S_date = (
-                    s.get("metadata", {}).get("date") if isinstance(s, dict) else s[1]
+            is_duplicate = False
+            for record in self.cached_sets_data:
+                existing_date = (
+                    record.get("metadata", {}).get("date")
+                    if isinstance(record, dict)
+                    else record[1]
                 )
-                if S_date == exec_date:
-                    istnieje = True
+                if existing_date == exec_date:
+                    is_duplicate = True
                     break
 
-            if not istnieje:
+            if not is_duplicate:
                 self.cached_sets_data.append(raw_sets_data)
 
+        # If it's an integrated database dump block (List)
         elif isinstance(raw_sets_data, list):
-            # Jeśli db_module przysłałby jednak całą listę naraz (lub to lista powtórzeń)
-            # Sprawdzamy czy to lista słowników/krotek serii, czy coś innego
             if raw_sets_data and isinstance(raw_sets_data[0], (dict, tuple)):
-                self.cached_sets_data = raw_sets_data
+                # CRITICAL FIX: Overwrite cache array directly on total bulk updates to prevent file mixing
+                self.cached_sets_data = list(raw_sets_data)
             else:
-                # Jeśli to dziwny format, na wszelki wypadek zabezpieczamy dane
                 if raw_sets_data not in self.cached_sets_data:
                     self.cached_sets_data.append(raw_sets_data)
 
-        # 2. Przekazujemy do manual_set_widget ZAWSZE pełną, skumulowaną listę serii.
-        # Nawet jeśli metoda .populate_data() wykona .clear(), to i tak zaraz odtworzy
-        # wszystkie dotychczas zebrane serie z naszej listy!
+        # Force UI update with freshly synced values
         if self.cached_sets_data:
             self.history_widget.populate_data(self.cached_sets_data)
 
-        self._show_history_tree()
-
     def _check_data_ready(self) -> bool:
-        """Pomocnicza weryfikacja dostępności bazy danych."""
+        """Verifies buffer presence before routing visualization calculations."""
         if not self.cached_sets_data:
             self.display_stack.setCurrentWidget(self.chart_widget)
             self.chart_widget.clear_chart()
@@ -468,34 +460,62 @@ class AnalyzeProgressScreen(Screen):
         return True
 
     def _show_history_tree(self):
-        """Przełącza stos widżetów z powrotem na drzewiaste zestawienie danych."""
         self.display_stack.setCurrentWidget(self.history_widget)
 
     def _analyze_set_quality(self):
-        """Wykres jakości serii (procent poprawnego wykonania)."""
+        """Calculates fine-grained performance indices based on composite non-error point aggregates."""
         if not self._check_data_ready():
             return
 
-        # Przełączamy stos widżetów na widok wykresu
         self.display_stack.setCurrentWidget(self.chart_widget)
-
         chart_data = []
+
         for row in self.cached_sets_data:
             meta = row["metadata"]
-            if meta["total"] > 0:
-                quality_percent = (meta["correct"] / meta["total"]) * 100.0
-                chart_data.append((meta["date"], quality_percent))
+            repetitions = row.get("repetitions", [])
+
+            if len(repetitions) > 0:
+                total_set_percentage = 0.0
+                for rep in repetitions:
+                    if isinstance(rep, dict):
+                        errors_map = rep.get("errors", {})
+                        shallow = 1 if bool(errors_map.get("legs_bent", False)) else 0
+                        far = (
+                            1
+                            if (
+                                bool(errors_map.get("too_narrow", False))
+                                or bool(errors_map.get("too_wide", False))
+                            )
+                            else 0
+                        )
+                        tempo = (
+                            1 if bool(errors_map.get("bad_torso_angle", False)) else 0
+                        )
+                    else:
+                        shallow = int(rep[4]) if len(rep) > 4 else 0
+                        far = int(rep[5]) if len(rep) > 5 else 0
+                        tempo = int(rep[6]) if len(rep) > 6 else 0
+
+                    active_errors_count = shallow + far + tempo
+                    rep_percentage = ((3.0 - active_errors_count) / 3.0) * 100.0
+                    total_set_percentage += rep_percentage
+
+                calculated_set_average = total_set_percentage / len(repetitions)
+                chart_data.append((meta["date"], calculated_set_average))
+            else:
+                if meta["total"] > 0:
+                    ratio_percentage = (meta["correct"] / meta["total"]) * 100.0
+                    chart_data.append((meta["date"], ratio_percentage))
 
         chart_data.sort(key=lambda x: x[0])
         self.chart_widget.display_line_chart(
             data=chart_data,
-            title="Analiza Postępów: Jakość Wykonania Serii",
-            y_label="Procent poprawnych powtórzeń (%)",
+            title="Analiza Postępów: Procentowa Jakość Wykonania Powtórzeń",
+            y_label="Średnia dokładność serii (%)",
             is_percentage=True,
         )
 
     def _analyze_reps_count(self):
-        """Wykres całkowitej ilości powtórzeń."""
         if not self._check_data_ready():
             return
 
@@ -514,7 +534,6 @@ class AnalyzeProgressScreen(Screen):
         )
 
     def _analyze_duration(self):
-        """Wykres czasu trwania serii."""
         if not self._check_data_ready():
             return
 
@@ -533,7 +552,6 @@ class AnalyzeProgressScreen(Screen):
         )
 
     def _analyze_sets_per_day(self):
-        """Wykres liczby serii w ciągu dnia (agregowany z cache)."""
         if not self._check_data_ready():
             return
 
@@ -555,11 +573,11 @@ class AnalyzeProgressScreen(Screen):
 
 
 class ManualDefinitionScreen(Screen, QObject):
-    # Sygnał wysyłany do głównej klasy w celu zapisania skonstruowanej serii
+    # Signal emitted to the main execution controller to commit a completed manual WorkoutSet instance
     save_requested = Signal(object)
 
     def __init__(self, navigator_cb, parent_widget):
-        # QObject.__init__(self) musi być jawne przy wielodziedziczeniu w PySide
+        # Explicit QObject initialization required under multiple inheritance architectures in PySide
         QObject.__init__(self)
         self.parent_widget = parent_widget
         self.navigator_cb = navigator_cb
@@ -570,42 +588,44 @@ class ManualDefinitionScreen(Screen, QObject):
         self.manual_preview = ManualPreviewWidget()
         super().__init__(self.manual_preview)
 
-        # Rejestracja opcji menu bocznego (ZMIANA NA JSON)
-        self.add_option("📍 Lokalizacja", self._set_manual_location)
-        self.add_option("⏱ Czas trwania serii", self._set_manual_duration)
-        self.add_option("📅 Data i godzina", self._set_manual_datetime)
-        self.add_option("＋ Dodaj powtórzenie", self._add_manual_repetition)
-        self.add_option(
-            "📥 Importuj z JSON", self._import_from_json
-        )  # POPRAWIONE NA JSON
-        self.add_option("💾 Zapisz do bazy", self._save_manual_to_db)
-        self.add_option("⬅ Wróć", lambda: self.navigator_cb("create_set"))
+        # Dynamic side menu option initializations
+        self.add_option("📍 Location", self._set_manual_location)
+        self.add_option("⏱ Duration Delta", self._set_manual_duration)
+        self.add_option("📅 Timestamp", self._set_manual_datetime)
+        self.add_option("＋ Append Repetition", self._add_manual_repetition)
+        self.add_option("📥 Import from JSON Structure", self._import_from_json)
+        self.add_option("💾 Commit Set to Database", self._save_manual_to_db)
+        self.add_option("⬅ Back", lambda: self.navigator_cb("create_set"))
 
         self._refresh_right_preview()
 
     def reset_set(self):
+        """Restores core parameters to initial clean baseline properties."""
         self.manual_set = WorkoutSet(location="", duration=0)
         self.manual_set.execution_date = ""
         self._refresh_right_preview()
 
     def _refresh_right_preview(self):
-        loc = self.manual_set.location if self.manual_set.location else "___"
+        location_label = self.manual_set.location if self.manual_set.location else "___"
         if self.manual_set.duration_seconds > 0:
-            m = self.manual_set.duration_seconds // 60
-            s = self.manual_set.duration_seconds % 60
-            dur = f"{m}m {s}s" if m > 0 else f"{s} s"
+            minutes = self.manual_set.duration_seconds // 60
+            seconds = self.manual_set.duration_seconds % 60
+            duration_label = f"{minutes}m {seconds}s" if minutes > 0 else f"{seconds}s"
         else:
-            dur = "___"
-        date = (
+            duration_label = "___"
+
+        timestamp_label = (
             self.manual_set.execution_date if self.manual_set.execution_date else "___"
         )
-        self.manual_preview.update_view(loc, dur, date, self.manual_set.repetitions)
+        self.manual_preview.update_view(
+            location_label, duration_label, timestamp_label, self.manual_set.repetitions
+        )
 
     def _set_manual_location(self):
         text, ok = QInputDialog.getText(
             self.parent_widget,
-            "Lokalizacja",
-            "Wpisz miejsce:",
+            "Session Configuration",
+            "Enter location label:",
             QLineEdit.Normal,
             self.manual_set.location,
         )
@@ -635,61 +655,59 @@ class ManualDefinitionScreen(Screen, QObject):
             self._refresh_right_preview()
 
     def _import_from_json(self):
-        """Wczytuje serie z JSON i zapisuje bezpośrednio do Twojej bazy danych SQLite (tabele 'sets' i 'repetitions'),
-        całkowicie eliminując pętle okien modalnych.
         """
-        import sqlite3  # Import lokalny dla bezpieczeństwa
+        Parses multi-profile JSON arrays and maps them directly onto the SQLite architecture.
+        Elimitnates intermediate modal rendering loops completely.
+        """
+        import sqlite3
 
-        # 1. Wybór pliku źródłowego JSON
+        # 1. Select the mock generation file target
         json_path, _ = QFileDialog.getOpenFileName(
             self.content_widget,
-            "Wybierz plik JSON ze strukturą serii",
+            "Select JSON Configuration Source",
             "",
-            "Pliki JSON (*.json)",
+            "JSON Structured Profiles (*.json)",
         )
         if not json_path:
             return
 
-        # 2. Jednorazowe pytanie o bazę docelową
+        # 2. Designate destination file pipeline target
         db_path, _ = QFileDialog.getSaveFileName(
             self.content_widget,
-            "Wybierz plik docelowej bazy danych (.db) lub utwórz nowy",
+            "Select Target SQLite Destination Database (.db)",
             "",
-            "Baza danych SQLite (*.db *.sqlite);;Wszystkie pliki (*)",
+            "Database Engines (*.db *.sqlite);;All Files (*)",
         )
         if not db_path:
             return
 
-        conn = None
+        db_connection = None
         try:
-            # Wczytanie i parsowanie pliku JSON
-            with open(json_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            with open(json_path, "r", encoding="utf-8") as file_stream:
+                parsed_json = json.load(file_stream)
 
-            if isinstance(data, dict):
-                series_list = [data]
-            elif isinstance(data, list):
-                series_list = data
+            if isinstance(parsed_json, dict):
+                series_data_list = [parsed_json]
+            elif isinstance(parsed_json, list):
+                series_data_list = parsed_json
             else:
                 raise ValueError(
-                    "Niepoprawna struktura JSON. Oczekiwano słownika lub listy."
+                    "Corrupted schema architecture payload wrapper detected."
                 )
 
-            # 3. BEZPOŚREDNIE POŁĄCZENIE Z BAZĄ SQLITE - TWOJA STRUKTURA
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
+            # 3. Direct SQL engine connection routine
+            db_connection = sqlite3.connect(db_path)
+            db_cursor = db_connection.cursor()
+            db_cursor.execute("PRAGMA foreign_keys = ON;")
 
-            # Aktywujemy klucze obce
-            cursor.execute("PRAGMA foreign_keys = ON;")
-
-            # Upewniamy się, że tabele istnieją (dokładna kopia Twojej definicji)
-            cursor.execute("""
+            # Initialize structures explicitly
+            db_cursor.execute("""
                 CREATE TABLE IF NOT EXISTS sets (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     execution_date TEXT, location TEXT, duration_seconds INTEGER,
                     total_reps INTEGER, correct_reps INTEGER, faulty_reps INTEGER
                 )""")
-            cursor.execute("""
+            db_cursor.execute("""
                 CREATE TABLE IF NOT EXISTS repetitions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT, set_id INTEGER,
                     execution_speed_seconds REAL, quality_status TEXT,
@@ -699,70 +717,73 @@ class ManualDefinitionScreen(Screen, QObject):
 
             saved_counter = 0
 
-            # Przetwarzamy każdą serię z pliku JSON
-            for item_data in series_list:
-                metadata = item_data.get("metadata", {})
-                xml_date = metadata.get("date", "")
-                xml_loc = metadata.get("location", "Import JSON")
-                xml_dur = int(metadata.get("duration_seconds", 0))
+            for structure_item in series_data_list:
+                metadata = structure_item.get("metadata", {})
+                extracted_date = metadata.get("date", "")
+                extracted_loc = metadata.get("location", "JSON Bulk Import")
+                extracted_dur = int(metadata.get("duration_seconds", 0))
 
-                if not xml_date:
-                    xml_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                if not extracted_date:
+                    extracted_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                repetitions_list = item_data.get("repetitions", [])
-                if not repetitions_list:
-                    continue  # Pomiń puste serie
+                repetitions_payload = structure_item.get("repetitions", [])
+                if not repetitions_payload:
+                    continue
 
-                # Wyliczamy statystyki serii wymagane przez Twoją tabelę 'sets'
-                total_reps = len(repetitions_list)
+                total_reps = len(repetitions_payload)
                 correct_reps = sum(
-                    1 for r in repetitions_list if r.get("quality") == "Correct"
+                    1 for r in repetitions_payload if r.get("quality") == "Correct"
                 )
                 faulty_reps = total_reps - correct_reps
 
-                # Wstawienie rekordu do tabeli 'sets'
-                cursor.execute(
+                db_cursor.execute(
                     """
                     INSERT INTO sets (execution_date, location, duration_seconds, total_reps, correct_reps, faulty_reps)
                     VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                    (xml_date, xml_loc, xml_dur, total_reps, correct_reps, faulty_reps),
+                    """,
+                    (
+                        extracted_date,
+                        extracted_loc,
+                        extracted_dur,
+                        total_reps,
+                        correct_reps,
+                        faulty_reps,
+                    ),
                 )
 
-                set_id = (
-                    cursor.lastrowid
-                )  # Pobieramy ID wygenerowane przez Twoją tabelę 'sets'
+                generated_set_id = db_cursor.lastrowid
 
-                # Wstawienie wszystkich powtórzeń do tabeli 'repetitions'
-                for rep_data in repetitions_list:
-                    speed = float(rep_data.get("speed", 2.0))
-                    quality_status = rep_data.get("quality", "Correct")
+                # Unify multiple independent error conditions concurrently per entry cycle
+                for single_rep in repetitions_payload:
+                    speed = float(single_rep.get("speed", 2.2))
+                    quality_status = single_rep.get("quality", "Correct")
+                    error_flags = single_rep.get("errors", {})
 
-                    errors = rep_data.get("errors", {})
-                    # Mapowanie nowych błędów na kolumny w Twojej bazie danych:
-                    # legs_bent -> za płytko, rozstaw rąk -> za daleko od krzesła, brak tempa -> lacks tempo
-                    error_too_shallow = 1 if bool(errors.get("legs_bent", False)) else 0
+                    # Direct assignment mapping layout
+                    error_too_shallow = (
+                        1 if bool(error_flags.get("legs_bent", False)) else 0
+                    )
                     error_too_far_from_chair = (
                         1
                         if (
-                            bool(errors.get("too_narrow", False))
-                            or bool(errors.get("too_wide", False))
+                            bool(error_flags.get("too_narrow", False))
+                            or bool(error_flags.get("too_wide", False))
                         )
                         else 0
                     )
                     error_lacks_tempo_control = (
-                        1 if bool(errors.get("bad_torso_angle", False)) else 0
+                        1 if bool(error_flags.get("bad_torso_angle", False)) else 0
                     )
 
-                    cursor.execute(
+                    db_cursor.execute(
                         """
                         INSERT INTO repetitions (
                             set_id, execution_speed_seconds, quality_status, 
                             error_too_shallow, error_too_far_from_chair, error_lacks_tempo_control
                         ) VALUES (?, ?, ?, ?, ?, ?)
-                    """,
+                        """,
                         (
-                            set_id,
+                            generated_set_id,
                             speed,
                             quality_status,
                             error_too_shallow,
@@ -773,13 +794,10 @@ class ManualDefinitionScreen(Screen, QObject):
 
                 saved_counter += 1
 
-            # Zatwierdzamy całą transakcję
-            conn.commit()
-
-            # Reset podglądu interfejsu
+            db_connection.commit()
             self.reset_set()
 
-            # Powiadomienie głównego db_module o nowej bazie w celu odświeżenia struktur
+            # Direct tracking sync alerts upstream to the core context application instance
             if hasattr(self.parent_widget, "db_module"):
                 self.parent_widget.db_module.db_path = db_path
                 if hasattr(self.parent_widget.db_module, "request_all_data"):
@@ -787,36 +805,37 @@ class ManualDefinitionScreen(Screen, QObject):
 
             QMessageBox.information(
                 self.parent_widget,
-                "Sukces importu",
-                f"Pomyślnie przetworzono plik JSON!\n"
-                f"Zapisano {saved_counter} serii bezpośrednio do bazy danych:\n{db_path}",
+                "Import Complete",
+                f"Successfully extracted training profiles!\n"
+                f"Committed {saved_counter} sets directly to database file:\n{db_path}",
             )
 
         except Exception as e:
-            if conn:
-                conn.rollback()
+            if db_connection:
+                db_connection.rollback()
             QMessageBox.critical(
                 self.parent_widget,
-                "Błąd zapisu bazy",
-                f"Wystąpił problem podczas bezpośredniego zapisu do struktur Twojej bazy danych:\n{str(e)}",
+                "Serialization Error",
+                f"Failed to record data blocks on storage targets:\n{str(e)}",
             )
         finally:
-            if conn:
-                conn.close()
+            if db_connection:
+                db_connection.close()
 
     def _save_manual_to_db(self):
         if not self.manual_set.repetitions:
             QMessageBox.warning(
-                self.parent_widget, "Błąd", "Nie możesz zapisać serii bez powtórzeń!"
+                self.parent_widget,
+                "Verification Halt",
+                "Cannot save an empty sequence containing zero repetitions.",
             )
             return
 
         if not self.manual_set.location:
-            self.manual_set.location = "Dom"
+            self.manual_set.location = "Home"
         if not self.manual_set.execution_date:
             self.manual_set.execution_date = datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S"
             )
 
-        # Emitujemy obiekt serii do głównej klasy
         self.save_requested.emit(self.manual_set)
