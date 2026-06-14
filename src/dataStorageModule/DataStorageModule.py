@@ -1,11 +1,9 @@
+# ==> ./dataStorageModule/DataStorageModule.py <==
 import queue
 import sqlite3
 import threading
 
-from PySide6.QtCore import (  # Dodane importy dla bezpiecznej komunikacji wątków
-    QObject,
-    Signal,
-)
+from PySide6.QtCore import QObject, Signal
 
 
 class DatabaseSignals(QObject):
@@ -21,29 +19,39 @@ class DatabaseModule(threading.Thread):
         self.task_queue = queue.Queue()
         self.daemon = True
         self.conn = None
-        # Inicjalizacja sygnałów Qt
         self.signals = DatabaseSignals()
 
     def _initialize_db(self):
-        """Creates tables if they do not exist."""
+        """Creates synchronized domain structure metrics if tables do not exist."""
         self.conn.execute("PRAGMA foreign_keys = ON;")
+
+        # Session sets overview table
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS sets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                execution_date TEXT, location TEXT, duration_seconds INTEGER,
-                total_reps INTEGER, correct_reps INTEGER, faulty_reps INTEGER
+                execution_date TEXT, 
+                location TEXT, 
+                duration_seconds INTEGER,
+                total_reps INTEGER, 
+                correct_reps INTEGER, 
+                faulty_reps INTEGER
             )""")
+
+        # Unified tracking structure with explicit boolean binary flag errors
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS repetitions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, set_id INTEGER,
-                execution_speed_seconds REAL, quality_status TEXT,
-                error_too_shallow INTEGER, error_too_far_from_chair INTEGER, error_lacks_tempo_control INTEGER,
+                id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                set_id INTEGER,
+                execution_speed_seconds REAL, 
+                quality_status TEXT,
+                error_too_shallow INTEGER, 
+                error_too_far_from_chair INTEGER, 
+                error_lacks_tempo_control INTEGER,
                 FOREIGN KEY(set_id) REFERENCES sets(id) ON DELETE CASCADE
             )""")
         self.conn.commit()
 
     def run(self):
-        print("Database module started in a separate thread...")
         self.conn = sqlite3.connect(self.db_path)
         self._initialize_db()
 
@@ -62,28 +70,28 @@ class DatabaseModule(threading.Thread):
                         result = self._get_statistics_from_db()
                         if callback:
                             callback[0](result)
-                    # NOWA AKCJA: Pobranie wszystkich serii z powtórzeniami
                     elif task_type == "FETCH_ALL_DATA":
                         result = self._fetch_all_sets_and_reps()
                         self.signals.data_loaded.emit(result)
 
                 except Exception as e:
-                    print(f"Error executing task {task_type}: {e}")
+                    print(f"[Database Error] Routine crash inside {task_type}: {e}")
                 finally:
                     self.task_queue.task_done()
         finally:
             if self.conn:
                 self.conn.close()
 
-    # --- INTERNAL METHODS ---
     def _save_set_to_db(self, workout_set):
+        """Extracts runtime set details and logs unified cross-perspective repetitions."""
         total_reps, correct_reps, faulty_reps = workout_set.summarize_set()
         cursor = self.conn.cursor()
+
         cursor.execute(
             """
             INSERT INTO sets (execution_date, location, duration_seconds, total_reps, correct_reps, faulty_reps)
             VALUES (?, ?, ?, ?, ?, ?)
-        """,
+            """,
             (
                 workout_set.execution_date,
                 workout_set.location,
@@ -96,22 +104,24 @@ class DatabaseModule(threading.Thread):
         set_id = cursor.lastrowid
 
         for r in workout_set.repetitions:
+            # Enforce 1/0 values across all mapped error parameters simultaneously
             cursor.execute(
                 """
-                INSERT INTO repetitions (set_id, execution_speed_seconds, quality_status, error_too_shallow, error_too_far_from_chair, error_lacks_tempo_control)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """,
+                INSERT INTO repetitions (
+                    set_id, execution_speed_seconds, quality_status, 
+                    error_too_shallow, error_too_far_from_chair, error_lacks_tempo_control
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
                 (
                     set_id,
                     r.execution_speed_seconds,
                     r.quality_status,
-                    int(r.error_too_shallow),
-                    int(r.error_too_far_from_chair),
-                    int(r.error_lacks_tempo_control),
+                    1 if getattr(r, "error_too_shallow", False) else 0,
+                    1 if getattr(r, "error_too_far_from_chair", False) else 0,
+                    1 if getattr(r, "error_lacks_tempo_control", False) else 0,
                 ),
             )
         self.conn.commit()
-        print(f"-> Saved set ID {set_id} with {total_reps} repetitions.")
 
     def _get_statistics_from_db(self):
         cursor = self.conn.cursor()
@@ -119,10 +129,8 @@ class DatabaseModule(threading.Thread):
         return cursor.fetchone()
 
     def _fetch_all_sets_and_reps(self) -> list:
-        """Pobiera wszystkie serie i dołącza do nich powtórzenia z bazy."""
+        """Retrieves and packages multi-perspective data sets for the history views."""
         cursor = self.conn.cursor()
-
-        # 1. Pobierz wszystkie serie
         cursor.execute(
             "SELECT id, execution_date, location, duration_seconds, total_reps, correct_reps, faulty_reps FROM sets ORDER BY id DESC"
         )
@@ -132,17 +140,15 @@ class DatabaseModule(threading.Thread):
         for s_row in sets_rows:
             set_id = s_row[0]
 
-            # 2. Pobierz powtórzenia dla konkretnej serii
             cursor.execute(
                 """
                 SELECT execution_speed_seconds, quality_status, error_too_shallow, error_too_far_from_chair, error_lacks_tempo_control 
                 FROM repetitions WHERE set_id = ?
-            """,
+                """,
                 (set_id,),
             )
             reps_rows = cursor.fetchall()
 
-            # Pakujemy w słownik ułatwiający czytanie w UI
             all_data.append(
                 {
                     "metadata": {
@@ -166,5 +172,4 @@ class DatabaseModule(threading.Thread):
         self.task_queue.put(("GET_STATISTICS", None, receiving_function))
 
     def request_all_data(self):
-        """Publiczna metoda wywoływana przez interfejs użytkownika."""
         self.task_queue.put(("FETCH_ALL_DATA", None))

@@ -82,9 +82,6 @@ class CreateSetScreen(BaseScreen):
         self.add_option("Wróć", lambda: navigator_cb("main_page"))
 
 
-# ==> Replace the LoadSetScreen class in your ./menuModule/screens.py <==
-
-
 class LoadSetScreen(Screen):
     def __init__(self, navigator_cb):
         self.main_container = QWidget()
@@ -178,7 +175,7 @@ class LoadSetScreen(Screen):
 
         self.workout_set.repetitions.clear()
         for rep_tuple in extracted_reps:
-            # rep_tuple: (speed, quality, shallow, far, tempo)
+            # rep_tuple map: (speed, quality, shallow, far, tempo)
             rep_obj = Repetition(
                 speed=rep_tuple[0],
                 quality=rep_tuple[1],
@@ -186,11 +183,14 @@ class LoadSetScreen(Screen):
                 far=bool(rep_tuple[3]),
                 tempo=bool(rep_tuple[4]),
             )
+            # Assign properties explicitly to guarantee backend module compatibility
+            rep_obj.error_too_shallow = bool(rep_tuple[2])
+            rep_obj.error_too_far_from_chair = bool(rep_tuple[3])
+            rep_obj.error_lacks_tempo_control = bool(rep_tuple[4])
+
             self.workout_set.add_repetition(rep_obj)
 
-        self.workout_set.duration_seconds = (
-            len(extracted_reps) * 2
-        )  # Approximate run delta metric
+        self.workout_set.duration_seconds = len(extracted_reps) * 2
         self._refresh_history_tree()
         self._update_menu_and_refresh()
 
@@ -215,20 +215,22 @@ class LoadSetScreen(Screen):
             self._update_menu_and_refresh()
 
     def _refresh_history_tree(self):
-        """Transforms active runtime properties into native cached dictionary variants for tree insertion."""
+        """Transforms active runtime properties into native cached variants matching the new multi-flag schema."""
         total, correct, faulty = self.workout_set.summarize_set()
 
         mapped_reps = []
         for r in self.workout_set.repetitions:
+            # Match the exact column positions expected by TrainingDataHistoryWidget:
+            # Index 2: Speed, Index 3: Status, Index 4: Shallow, Index 5: Far, Index 6: Tempo
             mapped_reps.append(
                 (
                     None,
-                    None,  # Omit database database row keys
+                    None,
                     r.execution_speed_seconds,
                     r.quality_status,
-                    1 if r.error_too_shallow else 0,
-                    1 if r.error_too_far_from_chair else 0,
-                    1 if r.error_lacks_tempo_control else 0,
+                    1 if getattr(r, "error_too_shallow", False) else 0,
+                    1 if getattr(r, "error_too_far_from_chair", False) else 0,
+                    1 if getattr(r, "error_lacks_tempo_control", False) else 0,
                 )
             )
 
