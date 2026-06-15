@@ -85,6 +85,9 @@ class VideoAnalyzer:
                     self.mp_pose,
                     self.mp_draw,
                 )
+            else:
+                self.front_proc.stage = "unknown"
+
         elif perspective == "side":
             self.last_side_frame = frame.copy()
             result = self.pose_detector_side.process(rgb)
@@ -100,6 +103,8 @@ class VideoAnalyzer:
                     self.mp_pose,
                     self.mp_draw,
                 )
+            else:
+                self.side_proc.stage = "unknown"
 
     def get_agr_frame(self, perspective="front"):
         return self.last_front_frame if perspective == "front" else self.last_side_frame
@@ -232,3 +237,31 @@ class VideoAnalyzer:
         self.cached_bounds = bounds_tuple
 
         return workout_set
+
+    def is_hand_raised_front(self) -> bool:
+        """Sprawdza na surowej klatce z przodu, czy nadgarstek jest powyżej ramienia."""
+        if self.last_front_frame is None:
+            return False
+        rgb = cv.cvtColor(self.last_front_frame, cv.COLOR_BGR2RGB)
+        res = self.pose_detector_front.process(rgb)
+        if res.pose_landmarks:
+            l = res.pose_landmarks.landmark
+            return (
+                l[self.mp_pose.PoseLandmark.RIGHT_WRIST].y
+                < l[self.mp_pose.PoseLandmark.RIGHT_SHOULDER].y
+            )
+        return False
+
+    def is_hand_raised_side(self) -> bool:
+        """Sprawdza na surowej klatce z boku, czy nadgarstek jest powyżej ramienia."""
+        if self.last_side_frame is None:
+            return False
+        rgb = cv.cvtColor(self.last_side_frame, cv.COLOR_BGR2RGB)
+        res = self.pose_detector_side.process(rgb)
+        if res.pose_landmarks:
+            l = res.pose_landmarks.landmark
+            return (
+                l[self.mp_pose.PoseLandmark.RIGHT_WRIST].y
+                < l[self.mp_pose.PoseLandmark.RIGHT_SHOULDER].y
+            )
+        return False

@@ -9,11 +9,11 @@ packages = [{include = "src"}, { include = "*", from = "src/include" }]
 [tool.poetry.dependencies]
 python = ">=3.10,<3.15"
 pyside6 = "^6.11.1"
+edge-tts = "^6.1.9"
+pygame = "^2.5.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0" 
 
 [tool.poetry.scripts]
 cyber-trener = "src.cyberTrener.cyberTrener:main"
-
-

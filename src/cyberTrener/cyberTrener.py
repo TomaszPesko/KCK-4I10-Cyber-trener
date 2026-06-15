@@ -156,6 +156,34 @@ class CyberTrener(AppWindow):
                 f"[CyberTrener] Błąd podczas przekazywania bazy danych do modułu: {e}"
             )
 
+    def _handle_navigation(self, screen_name: str):
+        """Centralny punkt zarządzania przełączaniem ekranów."""
+        # Jeżeli opuszczamy ekran tworzenia serii, zmuszamy go do ugaszenia kamer
+        if screen_name != "create_set":
+            if hasattr(self, "screen_create"):
+                if (
+                    self.screen_create.preview_thread
+                    and self.screen_create.preview_thread.isRunning()
+                ):
+                    self.screen_create.preview_thread.stop()
+                if (
+                    self.screen_create.live_thread
+                    and self.screen_create.live_thread.isRunning()
+                ):
+                    self.screen_create.live_thread.stop()
+
+        if screen_name == "close":
+            self.close()
+        elif screen_name == "manual_definition":
+            self.screen_manual.reset_set()
+            self.switch_to_screen(screen_name)
+        elif screen_name == "create_set":
+            self.switch_to_screen(screen_name)
+            # Wywołujemy podgląd dopiero w momencie faktycznego wejścia na ekran
+            self.screen_create._restart_pasywny_podglad()
+        else:
+            self.switch_to_screen(screen_name)
+
 
 def main():
     app = QApplication(sys.argv)

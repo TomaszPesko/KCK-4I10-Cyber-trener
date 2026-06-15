@@ -1,0 +1,4158 @@
+==> ./cyberTrener/frontview.py <==
+import cv2 as cv
+import mediapipe as mp
+import math
+
+# MediaPipe setup
+mp_pose = mp.solutions.pose
+mp_draw = mp.solutions.drawing_utils
+
+# Video
+video = cv.VideoCapture("benchdipfrontdemo.mp4")
+
+# Pose detector
+pose = mp_pose.Pose(
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5
+)
+
+
+def distance(a, b):
+    return math.sqrt(
+        (a.x - b.x) ** 2 +
+        (a.y - b.y) ** 2
+    )
+
+# Repetition variables
+rep_count = 0
+stage = "up"
+
+# -----------------------------
+# Thresholds
+
+# Shoulder-elbow vertical difference
+DOWN_THRESHOLD = 0.04
+UP_THRESHOLD = 0.10
+
+# Hand separation validation
+HAND_MIN = 0.18
+HAND_MAX = 0.42
+
+while video.isOpened():
+
+    ok, frame = video.read()
+
+    if not ok:
+        break
+
+    rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+
+    result = pose.process(rgb)
+
+    if result.pose_landmarks:
+
+        landmarks = result.pose_landmarks.landmark
+
+        # Right arm
+        right_shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER]
+        right_elbow = landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW]
+        right_wrist = landmarks[mp_pose.PoseLandmark.RIGHT_WRIST]
+
+        # Left wrist
+        left_wrist = landmarks[mp_pose.PoseLandmark.LEFT_WRIST]
+
+        # -----------------------------
+        # Main height parameter
+        shoulder_elbow_diff = abs(
+            right_shoulder.y - right_elbow.y
+        )
+
+        # Wrist should stay below elbow
+        proper_arm = right_wrist.y > right_elbow.y
+
+
+        # Hand distance validation
+        hand_distance = distance(
+            left_wrist,
+            right_wrist
+        )
+
+        hands_ok = (
+            HAND_MIN <= hand_distance <= HAND_MAX
+        )
+
+        # Draw skeleton
+        mp_draw.draw_landmarks(
+            frame,
+            result.pose_landmarks,
+            mp_pose.POSE_CONNECTIONS
+        )
+
+        # -----------------------------
+        # Repetition logic
+        # Only count if hand position valid
+
+        if hands_ok and proper_arm:
+
+            # Bottom position
+            if shoulder_elbow_diff < DOWN_THRESHOLD:
+                stage = "down"
+
+            # Return to top
+            elif (
+                shoulder_elbow_diff > UP_THRESHOLD
+                and stage == "down"
+            ):
+                rep_count += 1
+                stage = "up"
+
+
+        # Hand placement feedback
+        hand_feedback = "OK"
+
+        if hand_distance < HAND_MIN:
+            hand_feedback = "Too narrow"
+
+        elif hand_distance > HAND_MAX:
+            hand_feedback = "Too wide"
+
+        # Display panel
+        cv.rectangle(
+            frame,
+            (0, 0),
+            (520, 220),
+            (0, 0, 0),
+            -1
+        )
+
+        cv.putText(
+            frame,
+            f"Reps: {rep_count}",
+            (20, 40),
+            cv.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 0),
+            2
+        )
+
+        cv.putText(
+            frame,
+            f"Stage: {stage}",
+            (20, 80),
+            cv.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 255),
+            2
+        )
+
+        cv.putText(
+            frame,
+            f"Shoulder-Elbow diff: {shoulder_elbow_diff:.3f}",
+            (20, 120),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.8,
+            (255, 255, 255),
+            2
+        )
+
+        cv.putText(
+            frame,
+            f"Hand distance: {hand_distance:.3f}",
+            (20, 160),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.8,
+            (255, 255, 255),
+            2
+        )
+
+        # Feedback color
+        feedback_color = (0, 255, 0)
+
+        if hand_feedback != "OK":
+            feedback_color = (0, 0, 255)
+
+        cv.putText(
+            frame,
+            f"Hands: {hand_feedback}",
+            (20, 200),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.9,
+            feedback_color,
+            2
+        )
+
+    cv.imshow("Front Bench Dips Counter", frame)
+
+    if cv.waitKey(1) & 0xFF == 27:
+        break
+
+video.release()
+cv.destroyAllWindows()
+==> ./cyberTrener/cyberTrener.py <==
+import sys
+
+from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
+
+from src.dataStorageModule.DataStorageModule import DatabaseModule
+from src.menuModule.menu import AppWindow
+from src.menuModule.screens.analyze_progress_screen import AnalyzeProgressScreen
+from src.menuModule.screens.create_set_screen import CreateSetScreen
+from src.menuModule.screens.load_set_screen import LoadSetScreen
+
+# Updated discrete package imports pointers
+from src.menuModule.screens.main_screen import MainScreen
+from src.menuModule.screens.manual_definition_screen import ManualDefinitionScreen
+
+
+class CyberTrener(AppWindow):
+    def __init__(self):
+        self.db_module = DatabaseModule(db_path="cyber_trainer.db")
+        super().__init__(title="CyberTrener - Twój E-Trener AI")
+
+        self._initialize_screens()
+        self.switch_to_screen("main_page")
+
+    def _initialize_screens(self):
+        # 1. Main navigation screen
+        self.screen_main = MainScreen(self._handle_navigation)
+        self.register_screen("main_page", self.screen_main)
+
+        # 2. Create set module
+        self.screen_create = CreateSetScreen(self._handle_navigation)
+        self.register_screen("create_set", self.screen_create)
+
+        # 3. Load set module
+        self.screen_load = LoadSetScreen(self._handle_navigation)
+        self.register_screen("load_set", self.screen_load)
+
+        # 4. Progress analysis module
+        self.screen_analyze = AnalyzeProgressScreen(
+            self._handle_navigation,
+            load_data_action_cb=lambda path: self._handle_db_load_request(path),
+            get_db_connection_cb=lambda: self.db_module.get_connection(),
+        )
+        self.register_screen("analyze_progress", self.screen_analyze)
+
+        # FIX: Safer signal registration without throwing noisy console RuntimeWarnings
+        try:
+            # We explicitly check if slots are registered before trying to sever them
+            self.db_module.signals.data_loaded.disconnect(
+                self.screen_analyze.handle_async_data_loaded
+            )
+        except (RuntimeError, TypeError):
+            pass
+
+        self.db_module.signals.data_loaded.connect(
+            self.screen_analyze.handle_async_data_loaded
+        )
+
+        # 5. Manual set entry submodule
+        self.screen_manual = ManualDefinitionScreen(
+            self._handle_navigation, parent_widget=self
+        )
+        self.screen_manual.save_requested.connect(self._execute_manual_set_save)
+        self.register_screen("manual_definition", self.screen_manual)
+
+    def _execute_manual_set_save(self, workout_set):
+        """Receives a completed WorkoutSet object and serializes it to a database path."""
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Save Workout Database Target", "", "SQLite Database (*.db)"
+        )
+        if not file_path:
+            return
+
+        self._ensure_db_thread_is_alive(file_path)
+        self.db_module.request_set_save(workout_set)
+
+        QMessageBox.information(
+            self, "Success", f"Set saved successfully to target:\n{file_path}"
+        )
+        self.switch_to_screen("create_set")
+
+    def _handle_navigation(self, screen_name: str):
+        """Centralny punkt zarządzania przełączaniem ekranów."""
+        if screen_name == "close":
+            self.close()
+        elif screen_name == "manual_definition":
+            self.screen_manual.reset_set()
+            self.switch_to_screen(screen_name)
+        else:
+            self.switch_to_screen(screen_name)
+
+    def _ensure_db_thread_is_alive(self, file_path: str):
+        """Pomocnicza metoda dbająca o prawidłowy stan wątku SQLite."""
+        self.db_module.db_path = file_path
+        if not self.db_module.is_alive():
+            try:
+                self.db_module.start()
+            except RuntimeError:
+                pass
+
+    def _load_training_data_action(self, db_path=None):
+        """Asynchronicznie ładuje dane serii z bazy danych do tabeli historii i cache.
+
+        POPRAWKA: Dodano opcjonalny argument db_path, aby uniknąć ponownego
+        otwierania okna wyboru pliku.
+        """
+        # 1. Jeśli ścieżka NIE została przekazana z zewnątrz, dopiero wtedy pytamy użytkownika
+        if not db_path:
+            from PySide6.QtWidgets import QFileDialog
+
+            db_path, _ = QFileDialog.getOpenFileName(
+                self,
+                "Wybierz plik bazy danych z treningami",
+                "",
+                "Baza danych SQLite (*.db *.sqlite);;Wszystkie pliki (*)",
+            )
+            # Jeśli użytkownik zamknął okno bez wyboru pliku, przerywamy akcję
+            if not db_path:
+                print("[CyberTrener] Anulowano wybór bazy danych przy ładowaniu.")
+                return
+
+        print(f"[Database] Zażądano odczytu z bazy: {db_path}")
+
+        # 2. Ustawiamy ścieżkę w module bazy danych i uruchamiamy wątek (jeśli nie żyje)
+        self.db_module.db_path = db_path
+        if not self.db_module.is_alive():
+            print("Database module started in a separate thread...")
+            self.db_module.start()
+
+        # 3. Wysyłamy właściwe żądanie o pobranie danych z wątku
+        # (Upewnij się, że ta metoda w Twoim db_module nazywa się dokładnie tak, np. request_all_data)
+        self.db_module.request_all_data()
+
+    def _handle_db_load_request(self, db_path):
+        """Nowa metoda pośrednicząca, która konfiguruje db_module i bezpośrednio
+
+        zleca asynchroniczny odczyt, OMIJAJĄC stare okno dialogowe.
+        """
+        try:
+            # Ustawiamy plik bazy danych
+            self.db_module.db_path = db_path
+
+            # Jeśli wątek bazy jeszcze nie żyje, odpalamy go
+            if not self.db_module.is_alive():
+                self.db_module.start()
+
+            # !!! KLUCZOWA POPRAWKA !!!
+            # Zamiast odpalać samą funkcję self._load_training_data_action(),
+            # która ma w środku zaszyte okno dialogowe, bezpośrednio wysyłamy
+            # żądanie do publicznego API Twojego DatabaseModule:
+            self.db_module.request_all_data()
+
+            print(f"[Database] Zażądano asynchronicznego odczytu z bazy: {db_path}")
+
+        except Exception as e:
+            print(
+                f"[CyberTrener] Błąd podczas przekazywania bazy danych do modułu: {e}"
+            )
+
+
+def main():
+    app = QApplication(sys.argv)
+    window = CyberTrener()
+    window.show()
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()
+
+==> ./cyberTrener/sideview.py <==
+import math
+
+import cv2 as cv
+import mediapipe as mp
+
+# Inicjalizacja MediaPipe
+mp_pose = mp.solutions.pose
+mp_draw = mp.solutions.drawing_utils
+
+
+def calculate_angle(a, b, c):
+    ax, ay = a.x, a.y
+    bx, by = b.x, b.y
+    cx, cy = c.x, c.y
+
+    angle = math.degrees(math.atan2(cy - by, cx - bx) - math.atan2(ay - by, ax - bx))
+
+    angle = abs(angle)
+
+    if angle > 180:
+        angle = 360 - angle
+
+    return angle
+
+
+def main():
+    # Load video
+    video = cv.VideoCapture("benchdipsdemo.mp4")
+
+    # Pose detector
+    pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+
+    # Count rep when comes back to 'up'
+    rep_count = 0
+    stage = "up"
+
+    # ---------------------------
+    # Form validation thresholds
+
+    # Elbow angle thresholds
+    BOTTOM_THRESHOLD = 105
+    TOP_THRESHOLD = 145
+
+    # Legs should stay almost straight
+    LEG_MIN_ANGLE = 155
+
+    # Torso angle near 90° at bottom
+    BODY_MIN_ANGLE = 75
+    BODY_MAX_ANGLE = 105
+
+    try:
+        # -----------------------------
+        # Main loop
+        while video.isOpened():
+            ok, frame = video.read()
+
+            if not ok:
+                break
+
+            rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+            result = pose.process(rgb)
+
+            if result.pose_landmarks:
+                landmarks = result.pose_landmarks.landmark
+
+                # Upper body landmarks
+                shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER]
+                elbow = landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW]
+                wrist = landmarks[mp_pose.PoseLandmark.RIGHT_WRIST]
+
+                # Lower body landmarks
+                hip = landmarks[mp_pose.PoseLandmark.RIGHT_HIP]
+                knee = landmarks[mp_pose.PoseLandmark.RIGHT_KNEE]
+                ankle = landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE]
+
+                # Angle calculations
+                # ---------------------
+
+                # Elbow angle
+                elbow_angle = calculate_angle(shoulder, elbow, wrist)
+
+                # Leg straightness
+                leg_angle = calculate_angle(hip, knee, ankle)
+
+                # Torso angle
+                body_angle = calculate_angle(shoulder, hip, knee)
+
+                # Draw skeleton
+                mp_draw.draw_landmarks(
+                    frame, result.pose_landmarks, mp_pose.POSE_CONNECTIONS
+                )
+
+                # ________________
+                # Rep counting
+
+                if elbow_angle < BOTTOM_THRESHOLD:
+                    stage = "down"
+
+                elif elbow_angle > TOP_THRESHOLD and stage == "down":
+                    rep_count += 1
+                    stage = "up"
+
+                # -----------------------------
+                # Form validation
+
+                leg_correct = leg_angle > LEG_MIN_ANGLE
+                body_correct = BODY_MIN_ANGLE <= body_angle <= BODY_MAX_ANGLE
+
+                # -----------------------------
+                # Info panel
+
+                cv.rectangle(frame, (0, 0), (260, 90), (0, 0, 0), -1)
+
+                # Reps
+                cv.putText(
+                    frame,
+                    f"Reps: {rep_count}",
+                    (15, 35),
+                    cv.FONT_HERSHEY_SIMPLEX,
+                    0.9,
+                    (0, 255, 0),
+                    2,
+                )
+
+                # Stage
+                cv.putText(
+                    frame,
+                    f"Stage: {stage}",
+                    (15, 75),
+                    cv.FONT_HERSHEY_SIMPLEX,
+                    0.8,
+                    (0, 255, 255),
+                    2,
+                )
+
+                # -----------------------------
+                # Warning messages
+
+                warning_y = 130
+
+                # Legs warning
+                if not leg_correct:
+                    cv.putText(
+                        frame,
+                        "Legs should be more straight",
+                        (15, warning_y),
+                        cv.FONT_HERSHEY_SIMPLEX,
+                        0.8,
+                        (0, 0, 255),
+                        2,
+                    )
+                    warning_y += 40
+
+                # Torso warning
+                if not body_correct and stage == "down":
+                    cv.putText(
+                        frame,
+                        "There should be ~90 deg. angle between torso and legs",
+                        (15, warning_y),
+                        cv.FONT_HERSHEY_SIMPLEX,
+                        0.8,
+                        (0, 0, 255),
+                        2,
+                    )
+
+                # -----------------------------
+                # Debug info
+
+                cv.putText(
+                    frame,
+                    f"E:{int(elbow_angle)}  L:{int(leg_angle)}  B:{int(body_angle)}",
+                    (15, frame.shape[0] - 20),
+                    cv.FONT_HERSHEY_SIMPLEX,
+                    0.6,
+                    (255, 255, 255),
+                    1,
+                )
+
+            # Show frame
+            cv.imshow("Bench Dips Counter", frame)
+
+            # ESC to exit
+            if cv.waitKey(1) & 0xFF == 27:
+                break
+
+    finally:
+        # Gwarantuje czyszczenie zasobów nawet w przypadku crashu kodu
+        video.release()
+        cv.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    main()
+
+
+==> ./menuModule/widgets/camera_live_thread.py <==
+import random
+import time
+
+import cv2 as cv
+from PySide6.QtCore import QThread, Signal
+
+from src.videoAnalysisModule.VideoAnalyzer import VideoAnalyzer
+from src.voiceSynthesisModule.VoiceSynthesizer import VoiceSynthesizer
+
+
+class CameraLiveThread(QThread):
+    frame_processed = Signal(object, object)
+    status_msg_updated = Signal(str)
+
+    def __init__(
+        self,
+        shared_analyzer: VideoAnalyzer,
+        front_index=0,
+        side_index=1,
+        has_front=True,
+        has_side=True,
+    ):
+        super().__init__()
+        self.analyzer = shared_analyzer
+        self.front_index = front_index
+        self.side_index = side_index
+        self.has_front = has_front
+        self.has_side = has_side
+        self._is_running = True
+
+        self.voice = VoiceSynthesizer()
+
+        self.STATE_PREPARATION = "PREPARATION"
+        self.STATE_VERIFY_SILHOUETTE = "VERIFY_SILHOUETTE"
+        self.STATE_SYNCHRONIZATION = "SYNCHRONIZATION"
+        self.STATE_WORKOUT_ACTIVE = "WORKOUT_ACTIVE"
+        self.current_state = self.STATE_PREPARATION
+
+    def run(self):
+        cap_front = cv.VideoCapture(self.front_index) if self.has_front else None
+        cap_side = cv.VideoCapture(self.side_index) if self.has_side else None
+
+        self.analyzer.reset()
+
+        state_start_time = time.time()
+        spoken_flags = {"prep": False, "silh": False, "sync": False, "start": False}
+
+        front_synced = not self.has_front
+        side_synced = not self.has_side
+        last_processed_rep_count = 0
+
+        while self._is_running:
+            has_f, frame_front = cap_front.read() if cap_front else (False, None)
+            has_s, frame_side = cap_side.read() if cap_side else (False, None)
+
+            # Przekazujemy surowe klatki bezpośrednio do wyświetlenia (bez nakładek AR)
+            # Klonujemy obrazy, aby MediaPipe pracował na niezależnym buforze
+            display_front = frame_front.copy() if has_f else None
+            display_side = frame_side.copy() if has_s else None
+
+            if self.current_state == self.STATE_PREPARATION:
+                elapsed = time.time() - state_start_time
+                self.status_msg_updated.emit(
+                    f"Przygotuj się! Podejdź do krzesła... {int(4 - elapsed)}s"
+                )
+                if not spoken_flags["prep"]:
+                    self.voice.speak(
+                        "Cześć! Przygotuj się do ćwiczenia. Podejdź do krzesła, trening rozpocznie się za trzy sekundy."
+                    )
+                    spoken_flags["prep"] = True
+
+                if elapsed >= 3.0:
+                    self.current_state = self.STATE_VERIFY_SILHOUETTE
+                    state_start_time = time.time()
+
+            elif self.current_state == self.STATE_VERIFY_SILHOUETTE:
+                self.analyzer.queue_frames(frame_front, frame_side)
+                self.analyzer.process_next_synced_step()
+                info = self.analyzer.get_current_series_info()
+
+                front_ok = info["front_stage"] != "unknown" if self.has_front else True
+                side_ok = info["side_stage"] != "unknown" if self.has_side else True
+
+                if not front_ok or not side_ok:
+                    self.status_msg_updated.emit(
+                        "⚠️ BŁĄD: Ktoś opuścił kadr! Odsuń kamery."
+                    )
+                    if not spoken_flags["silh"]:
+                        self.voice.speak(
+                            "Uwaga! Nie widzę Twojej pełnej sylwetki. Proszę, popraw ustawienie lub odsuń kamery ćwiczeń."
+                        )
+                        spoken_flags["silh"] = True
+                    time.sleep(1.0)
+                else:
+                    if self.has_front and self.has_side:
+                        self.current_state = self.STATE_SYNCHRONIZATION
+                    else:
+                        self.current_state = self.STATE_WORKOUT_ACTIVE
+                    state_start_time = time.time()
+
+            elif self.current_state == self.STATE_SYNCHRONIZATION:
+                self.status_msg_updated.emit(
+                    "Podnieś rękę nad głowę w celu synchronizacji latencji kamer..."
+                )
+                if not spoken_flags["sync"]:
+                    self.voice.speak(
+                        "Kamery aktywne. Proszę, unieś teraz jedną dłoń wysoko nad głowę, aby zsynchronizować obraz."
+                    )
+                    spoken_flags["sync"] = True
+
+                self.analyzer.queue_frames(frame_front, frame_side)
+                info = self.analyzer.get_current_series_info()
+
+                if not front_synced and info["hand_feedback"] == "TOO_FAR":
+                    front_synced = True
+                    self.voice.speak("Perspektywa z przodu zsynchronizowana.")
+
+                if not side_synced and info["body_correct"] is True:
+                    side_synced = True
+                    self.voice.speak("Perspektywa z boku zsynchronizowana.")
+
+                if front_synced and side_synced:
+                    self.current_state = self.STATE_WORKOUT_ACTIVE
+                    state_start_time = time.time()
+                else:
+                    self.analyzer.process_next_synced_step()
+
+            elif self.current_state == self.STATE_WORKOUT_ACTIVE:
+                if not spoken_flags["start"]:
+                    self.voice.speak(
+                        "Synchronizacja zakończona. Możesz rozpocząć serię dipów. Powodzenia!"
+                    )
+                    spoken_flags["start"] = True
+
+                self.analyzer.queue_frames(frame_front, frame_side)
+                self.analyzer.process_next_synced_step()
+
+                info = self.analyzer.get_current_series_info()
+                self.status_msg_updated.emit(
+                    f"Trening aktywny! Liczba powtórzeń: {info['total_reps']}"
+                )
+
+                if info["total_reps"] > last_processed_rep_count:
+                    last_processed_rep_count = info["total_reps"]
+
+                    errors_pool = []
+                    if not info["leg_correct"]:
+                        errors_pool.append(
+                            "Zejdź głębiej, robisz za płytkie powtórzenia."
+                        )
+                    if info["hand_feedback"] != "OK":
+                        errors_pool.append("Trzymaj ręce bliżej krzesła.")
+                    if not info["body_correct"]:
+                        errors_pool.append(
+                            "Kontroluj tempo ćwiczenia, nie spiesz się tak."
+                        )
+
+                    if not errors_pool:
+                        self.voice.speak("Świetnie, idealne powtórzenie!")
+                    else:
+                        chosen_feedback = random.choice(errors_pool)
+                        self.voice.speak(chosen_feedback)
+
+            # Emitujemy surowe klatki wideo
+            self.frame_processed.emit(display_front, display_side)
+            time.sleep(0.033)
+
+        if cap_front:
+            cap_front.release()
+        if cap_side:
+            cap_side.release()
+
+==> ./menuModule/widgets/__init__.py <==
+
+==> ./menuModule/widgets/progress_chart_widget.py <==
+from PySide6.QtCharts import (
+    QBarCategoryAxis,
+    QBarSeries,
+    QBarSet,
+    QChart,
+    QChartView,
+    QDateTimeAxis,
+    QLineSeries,
+    QScatterSeries,
+    QSplineSeries,
+    QValueAxis,
+)
+from PySide6.QtCore import QDateTime, QMargins, QPoint, Qt
+from PySide6.QtGui import QBrush, QColor, QCursor, QFont, QPainter, QPen
+from PySide6.QtWidgets import QToolTip, QVBoxLayout, QWidget
+
+
+class ProgressChartWidget(QWidget):
+    """Natywny, ciemny widget wykresów oparty o QtCharts."""
+
+    def __init__(self):
+        super().__init__()
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        # Inicjalizacja bazowych komponentów QtCharts
+        self.chart = QChart()
+        self.chart_view = QChartView(self.chart)
+        self.chart_view.setRenderHint(QPainter.Antialiasing)
+
+        # Stylizacja ciemnego motywu wykresu
+        self.chart.setBackgroundVisible(
+            False
+        )  # Przezroczyste tło, dopasowane do contentArea
+        self.chart.legend().setVisible(True)
+        self.chart.legend().setAlignment(Qt.AlignBottom)
+        self.chart.legend().setLabelColor(QColor("#dddddd"))
+
+        self.layout.addWidget(self.chart_view)
+
+    def clear_chart(self):
+        self.chart.removeAllSeries()
+        # Usuwamy stare osie, jeśli istnieją
+        for axis in self.chart.axes():
+            self.chart.removeAxis(axis)
+
+    def _setup_time_axes(
+        self,
+        min_dt: QDateTime,
+        max_dt: QDateTime,
+        y_min: float,
+        y_max: float,
+        y_label: str,
+    ):
+        """Pomocnicza metoda konfigurująca osie X (Czas) oraz Y (Wartość)."""
+        # Konfiguracja osi X (Czasowej)
+        axis_x = QDateTimeAxis()
+        axis_x.setFormat("yyyy-MM-dd")
+        axis_x.setRange(min_dt, max_dt)
+        axis_x.setLabelsColor(QColor("#bbbbbb"))
+        axis_x.setGridLineColor(QColor("#444444"))
+
+        # POPRAWKA: Ustawienie tytułu i koloru za pomocą setTitleBrush
+        axis_x.setTitleText("Data")
+        axis_x.setTitleVisible(True)
+        axis_x.setTitleBrush(QBrush(QColor("#00cc66")))
+
+        # Konfiguracja osi Y (Wartościowej)
+        axis_y = QValueAxis()
+        axis_y.setRange(y_min, y_max if y_max > y_min else y_min + 1)
+        axis_y.setLabelsColor(QColor("#bbbbbb"))
+        axis_y.setGridLineColor(QColor("#444444"))
+
+        # POPRAWKA: Ustawienie tytułu i koloru za pomocą setTitleBrush
+        axis_y.setTitleText(y_label)
+        axis_y.setTitleVisible(True)
+        axis_y.setTitleBrush(QBrush(QColor("#00cc66")))
+
+        # Zapewnienie dyskretnych wartości (np. dla powtórzeń) jeśli liczby są małe
+        if y_max < 10:
+            axis_y.setLabelFormat("%d")
+
+        self.chart.addAxis(axis_x, Qt.AlignBottom)
+        self.chart.addAxis(axis_y, Qt.AlignLeft)
+        return axis_x, axis_y
+
+    def display_line_chart(
+        self, data: list, title: str, y_label: str, is_percentage: bool = False
+    ):
+        """Generuje gładką linię trendu przy użyciu nieliniowej regresji wielomianowej stopnia 3."""
+        self.clear_chart()
+        self.chart.setTitle(title)
+        self.chart.setTitleBrush(QColor("#00cc66"))
+
+        if not data:
+            return
+
+        # Seria 1: Gładka linia trendu (Regresja Wielomianowa)
+        trend_series = QLineSeries()
+        trend_series.setName(f"{y_label} (Ogólny Trend)")
+
+        pen = QPen(QColor("#00cc66"))
+        pen.setWidth(4)  # Grubsza linia dla czytelności trendu
+        trend_series.setPen(pen)
+
+        # Seria 2: Rzeczywiste punkty treningowe (Scatter)
+        scatter_series = QScatterSeries()
+        scatter_series.setName("Konkretne treningi")
+        scatter_series.setMarkerShape(QScatterSeries.MarkerShapeCircle)
+        scatter_series.setMarkerSize(8)
+        scatter_series.setBrush(QBrush(QColor("#ffcc00")))
+        scatter_series.setPen(QPen(QColor("#ffaa00"), 1))
+
+        timestamps = []
+        x_indices = (
+            []
+        )  # Czas zmapowany na sekundy/dni od początku dla stabilności numerycznej
+        y_values = []
+
+        # --- 1. Parsowanie danych ---
+        for date_str, val in data:
+            try:
+                dt = QDateTime.fromString(date_str, Qt.ISODate)
+                if not dt.isValid():
+                    dt = QDateTime.fromString(date_str, "yyyy-MM-dd HH:mm:ss")
+                if not dt.isValid():
+                    dt = QDateTime.fromString(date_str, "yyyy-MM-dd")
+
+                if dt.isValid():
+                    msecs = dt.toMSecsSinceEpoch()
+                    scatter_series.append(msecs, val)  # Dodajemy surowy punkt pomiarowy
+                    timestamps.append(dt)
+                    y_values.append(val)
+            except Exception as e:
+                print(f"[Chart Error] {e}")
+
+        if not timestamps:
+            return
+
+        # --- 2. Algorytm Regresji Wielomianowej stopnia 3 (Najmniejsze kwadraty) ---
+        # Mapujemy milisekundy na mniejsze wartości (np. sekundy od pierwszego treningu)
+        # zapobiega to potężnym przepełnieniom zmiennych przy potęgowaniu timestampów (C++ Overflow)
+        t0 = min(timestamps).toMSecsSinceEpoch()
+        x_values = [(t.toMSecsSinceEpoch() - t0) / 1000.0 for t in timestamps]
+        n = len(x_values)
+
+        # Jeśli mamy za mało danych na wielomian stopnia 3, domyślnie rysujemy prostą linię łączącą
+        if n < 4:
+            for t, y in zip(timestamps, y_values):
+                trend_series.append(t.toMSecsSinceEpoch(), y)
+        else:
+            # Tworzymy macierz i wektor do rozwiązania układu równań liniowych wielomianu stopnia 3
+            # Równanie: y = a*x^3 + b*x^2 + c*x + d
+            sums_x = [0.0] * 7  # Od sum(x^0) do sum(x^6)
+            for x in x_values:
+                for power in range(7):
+                    sums_x[power] += x**power
+
+            sum_y = sum(y_values)
+            sum_xy = sum(x * y for x, y in zip(x_values, y_values))
+            sum_x2y = sum((x**2) * y for x, y in zip(x_values, y_values))
+            sum_x3y = sum((x**3) * y for x, y in zip(x_values, y_values))
+
+            # Prosta eliminacja Gaussa do wyznaczenia współczynników a, b, c, d
+            # Budujemy macierz rozszerzoną układu
+            matrix = [
+                [sums_x[6], sums_x[5], sums_x[4], sums_x[3], sum_x3y],
+                [sums_x[5], sums_x[4], sums_x[3], sums_x[2], sum_x2y],
+                [sums_x[4], sums_x[3], sums_x[2], sums_x[1], sum_xy],
+                [sums_x[3], sums_x[2], sums_x[1], sums_x[0], sum_y],
+            ]
+
+            # Eliminacja w dół
+            for i in range(4):
+                for j in range(i + 1, 4):
+                    factor = matrix[j][i] / matrix[i][i]
+                    for k in range(i, 5):
+                        matrix[j][k] -= factor * matrix[i][k]
+
+            # Podstawienie wsteczne
+            coefs = [0.0] * 4
+            for i in range(3, -1, -1):
+                coefs[i] = matrix[i][4]
+                for j in range(i + 1, 4):
+                    coefs[i] -= matrix[i][j] * coefs[j]
+                coefs[i] /= matrix[i][i]
+
+            a, b, c, d = coefs  # Nasze dopasowane współczynniki trendu
+
+            # --- 3. Generowanie gładkiej krzywej trendu ---
+            # Próbkujemy wyliczone równanie w 50 równomiernych punktach od początku do końca osi czasu
+            start_x = min(x_values)
+            end_x = max(x_values)
+            step = (end_x - start_x) / 50.0
+
+            for i in range(51):
+                curr_x = start_x + (i * step)
+                # Wyliczamy wartość Y z wielomianu regresji
+                pred_y = a * (curr_x**3) + b * (curr_x**2) + c * curr_x + d
+
+                # Zabezpieczenie dla procentów, aby trend nie wystrzelił poza logiczną skalę 0-100%
+                if is_percentage:
+                    pred_y = max(0.0, min(100.0, pred_y))
+
+                # Mapujemy z powrotem na milisekundowy timestamp osi X
+                curr_msecs = t0 + (curr_x * 1000.0)
+                trend_series.append(curr_msecs, pred_y)
+
+        # Dodanie serii i konfiguracja osi
+        self.chart.addSeries(trend_series)
+        self.chart.addSeries(scatter_series)
+
+        min_dt = min(timestamps).addDays(-2)
+        max_dt = max(timestamps).addDays(2)
+        y_min = 0 if is_percentage else min(y_values) * 0.9
+        y_max = 100 if is_percentage else max(y_values) * 1.1
+
+        axis_x, axis_y = self._setup_time_axes(min_dt, max_dt, y_min, y_max, y_label)
+
+        trend_series.attachAxis(axis_x)
+        trend_series.attachAxis(axis_y)
+        scatter_series.attachAxis(axis_x)
+        scatter_series.attachAxis(axis_y)
+
+    def display_bar_chart(self, data: list, title: str, y_label: str):
+        """Generuje interaktywny wykres słupkowy na osi czasu z równomiernie rozłożonymi datami."""
+        self.clear_chart()
+        self.chart.setTitle(title)
+        self.chart.setTitleBrush(QColor("#00cc66"))
+
+        title_font = QFont("Arial", 14, QFont.Bold)
+        self.chart.setTitleFont(title_font)
+
+        if not data:
+            return
+
+        # Margines na dole zapewniający pełną widoczność dat osi czasu
+        self.chart.setMargins(QMargins(25, 10, 20, 45))
+
+        timestamps = []
+        values = []
+        self.bar_data_cache = []  # Bufor dla podpowiedzi hovered
+
+        # Dynamicznie dobieramy szerokość słupka (grubość linii pen) w zależności od gęstości danych
+        # Im więcej dni w bazie, tym słupki powinny być nieco węższe, by zachować bezpieczny padding
+        total_days = len(data)
+        bar_width = 14 if total_days < 15 else 8 if total_days < 40 else 4
+
+        # Renderujemy KAŻDY słupek na swoim dokładnym miejscu w czasie
+        for idx, (date_str, count) in enumerate(data):
+            dt = QDateTime.fromString(date_str, Qt.ISODate)
+            if not dt.isValid():
+                dt = QDateTime.fromString(date_str, "yyyy-MM-dd")
+
+            if dt.isValid():
+                # Tworzymy pionową serię słupkową
+                bar_line = QLineSeries()
+                bar_line.setPointsVisible(False)
+
+                # Jaskrawy zielony kolor z ciemniejszym, eleganckim akcentem
+                pen = QPen(QColor("#00cc66"))
+                pen.setWidth(bar_width)
+                bar_line.setPen(pen)
+
+                msecs = dt.toMSecsSinceEpoch()
+                bar_line.append(msecs, 0)
+                bar_line.append(msecs, count)
+
+                self.chart.addSeries(bar_line)
+
+                # Zapisujemy do bufora identyfikatory indeksów dla zdarzeń myszy
+                self.bar_data_cache.append((msecs, date_str, count, bar_width))
+                timestamps.append(dt)
+                values.append(count)
+
+        if not timestamps:
+            return
+
+        self.chart.legend().setVisible(False)
+
+        axis_x = QDateTimeAxis()
+        axis_x.setFormat("yyyy-MM-dd")
+        axis_x.setLabelsColor(QColor("#dddddd"))
+        axis_x.setGridLineColor(QColor("#444444"))
+        axis_x.setLabelsFont(QFont("Arial", 10))
+        axis_x.setLabelsAngle(0)  # Czyste, poziome napisy
+
+        axis_x.setTickCount(5)
+
+        min_dt = min(timestamps).addDays(-2)
+        max_dt = max(timestamps).addDays(2)
+        axis_x.setRange(min_dt, max_dt)
+        self.chart.addAxis(axis_x, Qt.AlignBottom)
+
+        max_val = max(values) if values else 5
+        axis_y = QValueAxis()
+        axis_y.setRange(0, max_val + 1)
+        axis_y.setLabelFormat("%d")
+        axis_y.setTitleText(y_label)
+        axis_y.setTitleBrush(QColor("#00cc66"))
+        axis_y.setLabelsColor(QColor("#dddddd"))
+        axis_y.setGridLineColor(QColor("#444444"))
+        axis_y.setLabelsFont(QFont("Arial", 10))
+        self.chart.addAxis(axis_y, Qt.AlignLeft)
+
+        for s in self.chart.series():
+            s.attachAxis(axis_x)
+            s.attachAxis(axis_y)
+
+        if hasattr(self, "chart_view") and self.chart_view:
+            self.chart_view.setMouseTracking(True)
+            self.chart_view.mouseMoveEvent = self._on_chart_mouse_move
+
+    def _on_chart_mouse_move(self, event):
+        """Inteligentny, ciągły skaner pozycji myszy mapujący współrzędne pikseli na punkty czasu osi X."""
+        pos = event.position()
+        mapped_point = self.chart.mapToValue(pos)
+        mouse_msecs = mapped_point.x()
+        mouse_y = mapped_point.y()
+
+        hover_hit = False
+
+        for msecs, date_str, count, width in self.bar_data_cache:
+            time_tolerance = 12 * 60 * 60 * 1000
+
+            if abs(mouse_msecs - msecs) < time_tolerance and 0 <= mouse_y <= count:
+                suffix = (
+                    "serie" if count in [2, 3, 4] else "serii" if count > 4 else "seria"
+                )
+                tooltip_text = (
+                    f"<b>Data:</b> {date_str}<br><b>Wykonano:</b> {count} {suffix}"
+                )
+
+                QToolTip.showText(QCursor.pos(), tooltip_text, self.chart_view)
+                hover_hit = True
+                break
+
+        if not hover_hit:
+            QToolTip.hideText()
+
+    def _on_bar_hovered(self, status: bool, index: int, bar_set: QBarSet):
+        """Slot wyświetlający czysty dymek podpowiedzi w aktualnej pozycji myszy na ekranie."""
+        if status:
+            if 0 <= index < len(self.bar_data_cache):
+                date_str, count = self.bar_data_cache[index]
+                suffix = (
+                    "serie" if count in [2, 3, 4] else "serii" if count > 4 else "seria"
+                )
+
+                tooltip_text = (
+                    f"<b>Data:</b> {date_str}<br><b>Wykonano:</b> {count} {suffix}"
+                )
+
+                # POPRAWKA: Używamy globalnej pozycji kursora myszy za pomocą QCursor.pos()
+                # self.chart_view (lub self, jeśli widget dziedziczy po QChartView) jako widget nadrzędny
+                view_widget = getattr(self, "chart_view", self)
+                QToolTip.showText(QCursor.pos(), tooltip_text, view_widget)
+        else:
+            QToolTip.hideText()
+
+==> ./menuModule/widgets/date_dialog.py <==
+from PySide6.QtCore import QDate, QDateTime, Qt, QTime
+from PySide6.QtWidgets import (
+    QDateEdit,
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QTimeEdit,
+    QVBoxLayout,
+)
+
+
+class DateTimeDialog(QDialog):
+    """Popup window providing separate date (calendar) and time selectors for workout sets."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Ustaw datę i godzinę")
+        self.setMinimumWidth(320)
+
+        self.setStyleSheet("""
+            QDialog { background-color: rgb(40, 40, 40); border: 2px solid #00cc66; border-radius: 10px; }
+            QLabel { color: white; font-size: 14px; margin-top: 5px; }
+            QDateEdit, QTimeEdit { 
+                background-color: rgb(60, 60, 60); 
+                color: white; 
+                border: 1px solid #555; 
+                border-radius: 5px; 
+                padding: 6px; 
+                font-size: 14px; 
+            }
+            QCalendarWidget QWidget { background-color: rgb(50, 50, 50); color: white; }
+            QPushButton { background-color: rgba(60, 60, 60, 220); color: white; border-radius: 8px; padding: 8px; font-size: 13px; }
+            QPushButton:hover { background-color: #00cc66; color: black; }
+        """)
+
+        layout = QVBoxLayout(self)
+
+        # Sekcja Daty
+        layout.addWidget(QLabel("Wybierz datę serii:"))
+        self.date_edit = QDateEdit(self)
+        self.date_edit.setDate(QDate.currentDate())
+        self.date_edit.setDisplayFormat("yyyy-MM-dd")
+        self.date_edit.setCalendarPopup(True)  # Popup z kalendarzem
+        layout.addWidget(self.date_edit)
+
+        # Sekcja Godziny
+        layout.addWidget(QLabel("Wybierz godzinę serii:"))
+        self.time_edit = QTimeEdit(self)
+        self.time_edit.setTime(QTime.currentTime())
+        self.time_edit.setDisplayFormat("HH:mm:ss")
+        self.time_edit.setCalendarPopup(True)  # Popup do wyboru czasu w PySide6
+        layout.addWidget(self.time_edit)
+
+        layout.addSpacing(15)
+
+        btn_layout = QHBoxLayout()
+        self.btn_confirm = QPushButton("Zatwierdź")
+        self.btn_confirm.clicked.connect(self.accept)
+        self.btn_cancel = QPushButton("Anuluj")
+        self.btn_cancel.clicked.connect(self.reject)
+
+        btn_layout.addWidget(self.btn_confirm)
+        btn_layout.addWidget(self.btn_cancel)
+        layout.addLayout(btn_layout)
+
+    def get_date_string(self) -> str:
+        """Combines picked date and time into expected database format."""
+        date_part = self.date_edit.date().toString("yyyy-MM-dd")
+        time_part = self.time_edit.time().toString("HH:mm:ss")
+        return f"{date_part} {time_part}"
+
+==> ./menuModule/widgets/camera_preview_thread.py <==
+import time
+import cv2 as cv
+from PySide6.QtCore import QThread, Signal
+
+
+class CameraPreviewThread(QThread):
+    frame_processed = Signal(object, object)
+
+    def __init__(self, front_index=0, side_index=1, has_front=True, has_side=True):
+        super().__init__()
+        self.front_index = front_index
+        self.side_index = side_index
+        self.has_front = has_front
+        self.has_side = has_side
+        self._is_running = True
+
+    def run(self):
+        cap_front = cv.VideoCapture(self.front_index) if self.has_front else None
+        cap_side = cv.VideoCapture(self.side_index) if self.has_side else None
+
+        while self._is_running:
+            has_f, frame_front = cap_front.read() if cap_front else (False, None)
+            has_s, frame_side = cap_side.read() if cap_side else (False, None)
+
+            display_front = frame_front.copy() if has_f else None
+            display_side = frame_side.copy() if has_s else None
+
+            self.frame_processed.emit(display_front, display_side)
+            time.sleep(0.033)
+
+        if cap_front:
+            cap_front.release()
+        if cap_side:
+            cap_side.release()
+
+    def stop(self):
+        self._is_running = False
+        self.wait()
+
+==> ./menuModule/widgets/video_sync_widget.py <==
+# ==> ./menuModule/widgets/video_sync_widget.py <==
+# ==> ./menuModule/widgets/video_sync_widget.py <==
+import cv2 as cv
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtWidgets import (
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QSizePolicy,
+    QSlider,
+    QVBoxLayout,
+    QWidget,
+)
+
+
+class VideoSyncWidget(QWidget):
+    """Widżet synchronizacji wideo wyrównany do góry z kontrolą początku i końca serii."""
+
+    def __init__(self):
+        super().__init__()
+        self.front_cap = None
+        self.side_cap = None
+        self.front_total_frames = 0
+        self.side_total_frames = 0
+
+        self._init_ui()
+
+    def _init_ui(self):
+        # Wyrównanie całego kontenera głównego do samej góry przestrzeni
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(10)
+        main_layout.setAlignment(Qt.AlignTop)
+
+        title = QLabel("Podgląd i Synchronizacja Materiału Wideo")
+        title.setStyleSheet(
+            "color: #00cc66; font-size: 16px; font-weight: bold; margin-bottom: 5px;"
+        )
+        title.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(title)
+
+        # Siatka QGridLayout zapewniająca idealne proporcje 50/50 kolumn
+        grid_layout = QGridLayout()
+        grid_layout.setSpacing(15)
+
+        # --- PERSPEKTYWA Z PRZODU ---
+        front_container = QWidget()
+        front_layout = QVBoxLayout(front_container)
+        front_layout.setContentsMargins(0, 0, 0, 0)
+        front_layout.setAlignment(Qt.AlignTop)
+
+        self.lbl_front_title = QLabel("Perspektywa z przodu (Brak pliku)")
+        self.lbl_front_title.setStyleSheet("color: #dddddd; font-weight: bold;")
+        self.lbl_front_title.setAlignment(Qt.AlignCenter)
+
+        self.lbl_front_preview = QLabel()
+        self.lbl_front_preview.setAlignment(Qt.AlignCenter)
+        self.lbl_front_preview.setStyleSheet(
+            "background-color: #1a1a1a; border: 1px solid #333; border-radius: 6px;"
+        )
+        self.lbl_front_preview.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
+        self.lbl_front_preview.setMinimumHeight(280)
+
+        front_controls = QGridLayout()
+        front_controls.addWidget(QLabel("Początek serii:"), 0, 0)
+        self.slider_front_start = QSlider(Qt.Horizontal)
+        self.slider_front_start.setEnabled(False)
+        self.slider_front_start.valueChanged.connect(self._on_front_start_changed)
+        front_controls.addWidget(self.slider_front_start, 0, 1)
+
+        front_controls.addWidget(QLabel("Koniec serii:"), 1, 0)
+        self.slider_front_end = QSlider(Qt.Horizontal)
+        self.slider_front_end.setEnabled(False)
+        self.slider_front_end.valueChanged.connect(self._on_front_end_changed)
+        front_controls.addWidget(self.slider_front_end, 1, 1)
+
+        front_layout.addWidget(self.lbl_front_title)
+        front_layout.addWidget(self.lbl_front_preview)
+        front_layout.addThemeLayout = front_layout.addLayout(front_controls)
+
+        # --- PERSPEKTYWA Z BOKU ---
+        side_container = QWidget()
+        side_layout = QVBoxLayout(side_container)
+        side_layout.setContentsMargins(0, 0, 0, 0)
+        side_layout.setAlignment(Qt.AlignTop)
+
+        self.lbl_side_title = QLabel("Perspektywa z boku (Brak pliku)")
+        self.lbl_side_title.setStyleSheet("color: #dddddd; font-weight: bold;")
+        self.lbl_side_title.setAlignment(Qt.AlignCenter)
+
+        self.lbl_side_preview = QLabel()
+        self.lbl_side_preview.setAlignment(Qt.AlignCenter)
+        self.lbl_side_preview.setStyleSheet(
+            "background-color: #1a1a1a; border: 1px solid #333; border-radius: 6px;"
+        )
+        self.lbl_side_preview.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
+        self.lbl_side_preview.setMinimumHeight(280)
+
+        side_controls = QGridLayout()
+        side_controls.addWidget(QLabel("Początek serii:"), 0, 0)
+        self.slider_side_start = QSlider(Qt.Horizontal)
+        self.slider_side_start.setEnabled(False)
+        self.slider_side_start.valueChanged.connect(self._on_side_start_changed)
+        side_controls.addWidget(self.slider_side_start, 0, 1)
+
+        side_controls.addWidget(QLabel("Koniec serii:"), 1, 0)
+        self.slider_side_end = QSlider(Qt.Horizontal)
+        self.slider_side_end.setEnabled(False)
+        self.slider_side_end.valueChanged.connect(self._on_side_end_changed)
+        side_controls.addWidget(self.slider_side_end, 1, 1)
+
+        side_layout.addWidget(self.lbl_side_title)
+        side_layout.addWidget(self.lbl_side_preview)
+        side_layout.addLayout(side_controls)
+
+        # Montaż kolumn 50/50 w siatce
+        grid_layout.addWidget(front_container, 0, 0)
+        grid_layout.addWidget(side_container, 0, 1)
+        grid_layout.setColumnStretch(0, 1)
+        grid_layout.setColumnStretch(1, 1)
+
+        main_layout.addLayout(grid_layout)
+
+    def load_videos(self, front_path, side_path):
+        self._release_caps()
+
+        if front_path:
+            self.front_cap = cv.VideoCapture(front_path)
+            self.front_total_frames = int(self.front_cap.get(cv.CAP_PROP_FRAME_COUNT))
+            self.slider_front_start.setRange(0, self.front_total_frames - 2)
+            self.slider_front_end.setRange(1, self.front_total_frames - 1)
+            self.slider_front_start.setValue(0)
+            self.slider_front_end.setValue(self.front_total_frames - 1)
+            self.slider_front_start.setEnabled(True)
+            self.slider_front_end.setEnabled(True)
+            self._update_front_preview(0)
+        else:
+            self.lbl_front_preview.setPixmap(QPixmap())
+            self.lbl_front_preview.setText("Nie wybrano wideo z przodu")
+            self.slider_front_start.setEnabled(False)
+            self.slider_front_end.setEnabled(False)
+
+        if side_path:
+            self.side_cap = cv.VideoCapture(side_path)
+            self.side_total_frames = int(self.side_cap.get(cv.CAP_PROP_FRAME_COUNT))
+            self.slider_side_start.setRange(0, self.side_total_frames - 2)
+            self.slider_side_end.setRange(1, self.side_total_frames - 1)
+            self.slider_side_start.setValue(0)
+            self.slider_side_end.setValue(self.side_total_frames - 1)
+            self.slider_side_start.setEnabled(True)
+            self.slider_side_end.setEnabled(True)
+            self._update_side_preview(0)
+        else:
+            self.lbl_side_preview.setPixmap(QPixmap())
+            self.lbl_side_preview.setText("Nie wybrano wideo z boku")
+            self.slider_side_start.setEnabled(False)
+            self.slider_side_end.setEnabled(False)
+
+    def _on_front_start_changed(self, val):
+        if val >= self.slider_front_end.value():
+            self.slider_front_start.setValue(self.slider_front_end.value() - 1)
+            return
+        self._update_front_preview(val)
+
+    def _on_front_end_changed(self, val):
+        if val <= self.slider_front_start.value():
+            self.slider_front_end.setValue(self.slider_front_start.value() + 1)
+            return
+        self._update_front_preview(val)
+
+    def _on_side_start_changed(self, val):
+        if val >= self.slider_side_end.value():
+            self.slider_side_start.setValue(self.slider_side_end.value() - 1)
+            return
+        self._update_side_preview(val)
+
+    def _on_side_end_changed(self, val):
+        if val <= self.slider_side_start.value():
+            self.slider_side_end.setValue(self.slider_side_start.value() + 1)
+            return
+        self._update_side_preview(val)
+
+    def _update_front_preview(self, frame_idx):
+        if self.front_cap:
+            self.front_cap.set(cv.CAP_PROP_POS_FRAMES, frame_idx)
+            ret, frame = self.front_cap.read()
+            if ret:
+                self._display_frame(frame, self.lbl_front_preview)
+            self.lbl_front_title.setText(
+                f"Przód (Start: {self.slider_front_start.value()} | Koniec: {self.slider_front_end.value()})"
+            )
+
+    def _update_side_preview(self, frame_idx):
+        if self.side_cap:
+            self.side_cap.set(cv.CAP_PROP_POS_FRAMES, frame_idx)
+            ret, frame = self.side_cap.read()
+            if ret:
+                self._display_frame(frame, self.lbl_side_preview)
+            self.lbl_side_title.setText(
+                f"Bok (Start: {self.slider_side_start.value()} | Koniec: {self.slider_side_end.value()})"
+            )
+
+    def _display_frame(self, cv_img, target_label):
+        target_w = target_label.width()
+        target_h = target_label.height()
+        if target_w <= 10 or target_h <= 10:
+            return
+        rgb_image = cv.cvtColor(cv_img, cv.COLOR_BGR2RGB)
+        h, w, ch = rgb_image.shape
+        bytes_per_line = ch * w
+        q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(q_img).scaled(
+            target_w, target_h, Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
+        target_label.setPixmap(pixmap)
+
+    def get_bounds(self):
+        f_start = (
+            self.slider_front_start.value()
+            if self.slider_front_start.isEnabled()
+            else 0
+        )
+        f_end = (
+            self.slider_front_end.value() if self.slider_front_end.isEnabled() else 0
+        )
+        s_start = (
+            self.slider_side_start.value() if self.slider_side_start.isEnabled() else 0
+        )
+        s_end = self.slider_side_end.value() if self.slider_side_end.isEnabled() else 0
+        return f_start, f_end, s_start, s_end
+
+    def restore_bounds(self, f_start, f_end, s_start, s_end):
+        """Przywraca i blokuje suwaki na pozycjach wybranych przed restartem deskryptorów plików."""
+        if self.front_cap:
+            self.slider_front_start.setValue(min(f_start, self.front_total_frames - 2))
+            self.slider_front_end.setValue(min(f_end, self.front_total_frames - 1))
+            self._update_front_preview(f_start)
+        if self.side_cap:
+            self.slider_side_start.setValue(min(s_start, self.side_total_frames - 2))
+            self.slider_side_end.setValue(min(s_end, self.side_total_frames - 1))
+            self._update_side_preview(s_start)
+
+    def _release_caps(self):
+        if self.front_cap:
+            self.front_cap.release()
+            self.front_cap = None
+        if self.side_cap:
+            self.side_cap.release()
+            self.side_cap = None
+
+==> ./menuModule/widgets/video_player.py <==
+import time
+
+import cv2 as cv
+from PySide6.QtCore import Qt, QThread, Signal, Slot
+from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QWidget
+
+from src.include.set_data import Repetition, WorkoutSet
+from src.videoAnalysisModule.VideoAnalyzer import VideoAnalyzer
+
+
+class VideoAnalysisThread(QThread):
+    frame_processed = Signal(object, object)
+    stats_updated = Signal(dict)
+    finished_analysis = Signal(dict)
+
+    def __init__(
+        self,
+        shared_analyzer: VideoAnalyzer,
+        front_path=None,
+        side_path=None,
+        f_start=0,
+        f_end=0,
+        s_start=0,
+        s_end=0,
+    ):
+        super().__init__()
+        self.analyzer = shared_analyzer
+        self.front_path = front_path
+        self.side_path = side_path
+        self.f_start = f_start
+        self.f_end = f_end
+        self.s_start = s_start
+        self.s_end = s_end
+        self._is_running = True
+
+    def run(self):
+        cap_front = cv.VideoCapture(self.front_path) if self.front_path else None
+        cap_side = cv.VideoCapture(self.side_path) if self.side_path else None
+
+        if cap_front:
+            cap_front.set(cv.CAP_PROP_POS_FRAMES, self.f_start)
+        if cap_side:
+            cap_side.set(cv.CAP_PROP_POS_FRAMES, self.s_start)
+
+        self.analyzer.reset()
+
+        while self._is_running:
+            current_f = int(cap_front.get(cv.CAP_PROP_POS_FRAMES)) if cap_front else 0
+            current_s = int(cap_side.get(cv.CAP_PROP_POS_FRAMES)) if cap_side else 0
+
+            has_front, frame_front = (
+                cap_front.read()
+                if (cap_front and current_f <= self.f_end)
+                else (False, None)
+            )
+            has_side, frame_side = (
+                cap_side.read()
+                if (cap_side and current_s <= self.s_end)
+                else (False, None)
+            )
+
+            if not has_front and not has_side:
+                break
+
+            self.analyzer.queue_frames(frame_front, frame_side)
+            self.analyzer.process_next_synced_step()
+
+            out_front = self.analyzer.get_agr_frame("front")
+            out_side = self.analyzer.get_agr_frame("side")
+            current_info = self.analyzer.get_current_series_info()
+
+            self.frame_processed.emit(out_front, out_side)
+            self.stats_updated.emit(current_info)
+
+            time.sleep(0.033)
+
+        if cap_front:
+            cap_front.release()
+        if cap_side:
+            cap_side.release()
+
+        # Odtwarzacz AR również zapisuje gotowy skompilowany obiekt bezpośrednio do cache silnika
+        bounds_tuple = (self.f_start, self.f_end, self.s_start, self.s_end)
+        self.analyzer.compile_and_cache_workout_set(
+            self.front_path, self.side_path, bounds_tuple
+        )
+
+        self.finished_analysis.emit(self.analyzer.get_current_series_info())
+
+    def stop(self):
+        self._is_running = False
+        self.wait()
+
+
+class VideoDisplayWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(5)
+
+        self.lbl_front = QLabel("Awaiting front view video feed...")
+        self.lbl_side = QLabel("Awaiting side view video feed...")
+
+        for lbl in [self.lbl_front, self.lbl_side]:
+            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setStyleSheet(
+                "background-color: #1a1a1a; border: 1px solid #333; color: #555;"
+            )
+            lbl.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+            layout.addWidget(lbl)
+
+    def set_modes(self, show_front, show_side):
+        self.lbl_front.setVisible(show_front)
+        self.lbl_side.setVisible(show_side)
+        self.clear_views()
+
+    def clear_views(self):
+        self.lbl_front.setText("No feed source (Front)")
+        self.lbl_side.setText("No feed source (Side)")
+
+    @Slot(object, object)
+    def update_frames(self, front_img, side_img):
+        if front_img is not None:
+            self._convert_to_pixmap(front_img, self.lbl_front)
+        if side_img is not None:
+            self._convert_to_pixmap(side_img, self.lbl_side)
+
+    def _convert_to_pixmap(self, cv_img, target_label):
+        if target_label.width() <= 10 or target_label.height() <= 10:
+            return
+
+        height, width, channel = cv_img.shape
+        bytes_per_line = channel * width
+        rgb_image = cv.cvtColor(cv_img, cv.COLOR_BGR2RGB)
+
+        q_img = QImage(
+            rgb_image.data, width, height, bytes_per_line, QImage.Format_RGB888
+        )
+        pixmap = QPixmap.fromImage(q_img)
+
+        scaled_pixmap = pixmap.scaled(
+            target_label.width(),
+            target_label.height(),
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation,
+        )
+        target_label.setPixmap(scaled_pixmap)
+
+==> ./menuModule/widgets/manual_set_widget.py <==
+from PySide6.QtCore import QDateTime, Qt
+from PySide6.QtGui import QBrush, QColor, QPainter, QPen
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QDialog,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QSpinBox,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
+from src.include.set_data import Repetition
+
+
+class DurationDialog(QDialog):
+    """Popup dialog to set workout duration in minutes and seconds."""
+
+    def __init__(self, current_total_seconds: int, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Ustaw czas trwania")
+        self.setMinimumWidth(280)
+
+        self.setStyleSheet("""
+            QDialog { background-color: rgb(40, 40, 40); border: 2px solid #00cc66; border-radius: 10px; }
+            QLabel { color: #dddddd; font-size: 14px; }
+            QSpinBox { background-color: rgb(60, 60, 60); color: white; border: 1px solid #555; border-radius: 5px; padding: 5px; font-size: 14px; }
+            QPushButton { background-color: rgba(60, 60, 60, 220); color: white; border-radius: 8px; padding: 6px; font-size: 14px; }
+            QPushButton:hover { background-color: #00cc66; color: black; }
+        """)
+
+        layout = QVBoxLayout(self)
+
+        # Wyliczenie aktualnych minut i sekund z przekazanej liczby sekund
+        init_min = current_total_seconds // 60
+        init_sec = current_total_seconds % 60
+
+        inputs_layout = QHBoxLayout()
+
+        # Minuty
+        min_vbox = QVBoxLayout()
+        min_vbox.addWidget(QLabel("Minuty:"))
+        self.spin_minutes = QSpinBox(self)
+        self.spin_minutes.setRange(0, 60)
+        self.spin_minutes.setValue(init_min)
+        min_vbox.addWidget(self.spin_minutes)
+
+        # Sekundy
+        sec_vbox = QVBoxLayout()
+        sec_vbox.addWidget(QLabel("Sekundy:"))
+        self.spin_seconds = QSpinBox(self)
+        self.spin_seconds.setRange(0, 59)
+        self.spin_seconds.setValue(init_sec)
+        sec_vbox.addWidget(self.spin_seconds)
+
+        inputs_layout.addLayout(min_vbox)
+        inputs_layout.addLayout(sec_vbox)
+        layout.addLayout(inputs_layout)
+
+        layout.addSpacing(10)
+
+        btn_layout = QHBoxLayout()
+        self.btn_save = QPushButton("Zapisz")
+        self.btn_save.clicked.connect(self.accept)
+        self.btn_cancel = QPushButton("Anuluj")
+        self.btn_cancel.clicked.connect(self.reject)
+
+        btn_layout.addWidget(self.btn_save)
+        btn_layout.addWidget(self.btn_cancel)
+        layout.addLayout(btn_layout)
+
+    def get_total_seconds(self) -> int:
+        return (self.spin_minutes.value() * 60) + self.spin_seconds.value()
+
+
+class RepetitionDialog(QDialog):
+    """Popup dialog to manually configure a single exercise repetition."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Dodaj Powtórzenie")
+        self.setMinimumWidth(320)
+
+        self.setStyleSheet("""
+            QDialog { background-color: rgb(40, 40, 40); border: 2px solid #00cc66; border-radius: 10px; }
+            QLabel { color: #dddddd; font-size: 14px; }
+            QLineEdit { background-color: rgb(60, 60, 60); color: white; border: 1px solid #555; border-radius: 5px; padding: 5px; }
+            QCheckBox { color: white; font-size: 13px; }
+            QPushButton { background-color: rgba(60, 60, 60, 220); color: white; border-radius: 8px; padding: 6px; font-size: 14px; }
+            QPushButton:hover { background-color: #00cc66; color: black; }
+        """)
+
+        layout = QVBoxLayout(self)
+
+        layout.addWidget(QLabel("Czas wykonania (sekundy):"))
+        self.speed_input = QLineEdit("2.5")
+        layout.addWidget(self.speed_input)
+
+        layout.addWidget(QLabel("Błędy powtórzenia:"))
+        self.cb_shallow = QCheckBox("Za płytko (too shallow)")
+        self.cb_far = QCheckBox("Za daleko od krzesła (too far)")
+        self.cb_tempo = QCheckBox("Brak kontroli tempa (lacks tempo)")
+
+        layout.addWidget(self.cb_shallow)
+        layout.addWidget(self.cb_far)
+        layout.addWidget(self.cb_tempo)
+
+        btn_layout = QHBoxLayout()
+        self.btn_add = QPushButton("Dodaj")
+        self.btn_add.clicked.connect(self.accept)
+        self.btn_cancel = QPushButton("Anuluj")
+        self.btn_cancel.clicked.connect(self.reject)
+
+        btn_layout.addWidget(self.btn_add)
+        btn_layout.addWidget(self.btn_cancel)
+        layout.addLayout(btn_layout)
+
+    def get_data(self) -> Repetition:
+        try:
+            speed = float(self.speed_input.text())
+        except ValueError:
+            speed = 0.0
+
+        shallow = self.cb_shallow.isChecked()
+        far = self.cb_far.isChecked()
+        tempo = self.cb_tempo.isChecked()
+
+        quality = "Faulty" if (shallow or far or tempo) else "Correct"
+        return Repetition(speed, quality, shallow, far, tempo)
+
+
+class ManualPreviewWidget(QWidget):
+    """Right-side canvas displaying live text summary of the configured workout set."""
+
+    def __init__(self):
+        super().__init__()
+        self._init_ui()
+
+    def _init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignCenter)
+
+        self.lbl_title = QLabel("Podgląd Tworzonej Serii (Ręcznie)")
+        self.lbl_title.setStyleSheet(
+            "color: #00cc66; font-size: 26px; font-weight: bold; margin-bottom: 15px;"
+        )
+        self.lbl_title.setAlignment(Qt.AlignCenter)
+
+        self.lbl_metadata = QLabel()
+        self.lbl_metadata.setStyleSheet(
+            "color: #dddddd; font-size: 16px; line-height: 160%;"
+        )
+        self.lbl_metadata.setAlignment(Qt.AlignCenter)
+
+        layout.addWidget(self.lbl_title)
+        layout.addWidget(self.lbl_metadata)
+        self.update_view("___", "___", "___", [])
+
+    def update_view(self, location: str, duration: str, date: str, repetitions: list):
+        total = len(repetitions)
+        correct = sum(1 for r in repetitions if r.quality_status == "Correct")
+        faulty = total - correct
+
+        text = (
+            f"<b>Data i godzina:</b> {date}<br>"
+            f"<b>Lokalizacja:</b> {location}<br>"
+            f"<b>Czas trwania serii:</b> {duration}<br><br>"
+            f"<span style='color: #00cc66; font-size: 18px;'><b>Suma powtórzeń:</b> {total}</span><br>"
+            f"Poprawne: {correct}  |  Z błędami: {faulty}"
+        )
+        self.lbl_metadata.setText(text)
+
+==> ./menuModule/widgets/training_data_history_widget.py <==
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QBrush, QColor, QTextDocument
+from PySide6.QtWidgets import (
+    QHeaderView,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
+    QTreeWidget,
+    QTreeWidgetItem,
+)
+
+
+class WrappingHTMLDelegate(QStyledItemDelegate):
+    """Zaawansowany delegat wykorzystujący silnik QTextDocument do wymuszenia
+
+    pełnego autowrapingu tekstów w kolumnach tabeli Qt.
+    """
+
+    def sizeHint(self, option, index):
+        doc = QTextDocument()
+        doc.setHtml(index.data())
+
+        # Pobieramy szerokość kolumny z widgetu nadrzędnego
+        tree_widget = index.model().parent()
+        if tree_widget:
+            column_width = tree_widget.columnWidth(index.column())
+            doc.setTextWidth(column_width - 10)  # Margines bezpieczeństwa na padding
+
+        return QSize(
+            doc.idealWidth(), doc.size().height() + 12
+        )  # Dodatkowy padding w pionie
+
+
+class TrainingDataHistoryWidget(QTreeWidget):
+    """Widget wyświetlający załadowane serie historyczne i zagnieżdżone powtórzenia w strukturze drzewa."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setColumnCount(3)
+        self.setHeaderLabels(
+            ["Parametr / Powtórzenie", "Status / Wartość", "Wykryte błędy"]
+        )
+
+        # Konfiguracja nagłówków zapobiegająca ignorowaniu rozmiarów pionowych
+        self.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.header().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.header().setSectionResizeMode(
+            2, QHeaderView.Interactive
+        )  # Pozwala na elastyczny resize
+        self.header().resizeSection(2, 300)  # Sugerowana szerokość startowa dla błędów
+
+        # 1. Włączamy natywne właściwości zawijania na poziomie widoku drzewiastego
+        self.setWordWrap(True)
+        self.setUniformRowHeights(
+            False
+        )  # KLUCZOWE: Każdy wiersz może mieć teraz inną wysokość!
+
+        # 2. Podpinamy zaawansowany delegat pod kolumnę z błędami
+        self.setItemDelegateForColumn(2, WrappingHTMLDelegate(self))
+
+        # Stylizacja dopasowana do ciemnego motywu CyberTrenera
+        self.setStyleSheet("""
+            QTreeWidget {
+                background-color: rgb(35, 35, 35);
+                color: #dddddd;
+                border: 1px solid #555;
+                border-radius: 6px;
+                font-size: 13px;
+            }
+            QHeaderView::section {
+                background-color: rgb(50, 50, 50);
+                color: #00cc66;
+                padding: 6px;
+                font-weight: bold;
+                border: 1px solid #333;
+            }
+            QTreeWidget::item {
+                padding: 6px;
+                border-bottom: 1px solid #2d2d2d;
+            }
+            QTreeWidget::item:hover {
+                background-color: rgba(0, 204, 102, 30);
+            }
+        """)
+
+    def populate_data(self, cached_sets_data):
+        """Dynamicznie buduje drzewo historii na podstawie struktury bazy danych lub cache."""
+        self.clear()
+
+        if not cached_sets_data:
+            return
+
+        if isinstance(cached_sets_data, dict):
+            incoming_sets = [cached_sets_data]
+        elif isinstance(cached_sets_data, list):
+            incoming_sets = cached_sets_data
+        else:
+            incoming_sets = [cached_sets_data]
+
+        try:
+            sorted_sets = sorted(
+                incoming_sets,
+                key=lambda x: x["metadata"]["date"] if isinstance(x, dict) else x[1],
+                reverse=True,
+            )
+        except Exception:
+            sorted_sets = incoming_sets
+
+        for row in sorted_sets:
+            if isinstance(row, dict):
+                meta = row.get("metadata", {})
+                exec_date = meta.get("date", "Nieznana data")
+                location = meta.get("location", "Dom")
+                duration = meta.get("duration", 0)
+                correct_reps = meta.get("correct", 0)
+                total_reps = meta.get("total", 0)
+                reps_list = row.get("repetitions", [])
+            else:
+                exec_date = row[1]
+                location = row[2]
+                duration = row[3]
+                total_reps = row[4]
+                correct_reps = row[5]
+                reps_list = row[7] if len(row) > 7 else []
+
+            set_item = QTreeWidgetItem(self)
+            set_item.setText(0, f"🏋️ Seria — {exec_date}")
+            set_item.setText(1, f"Lokalizacja: {location}")
+            set_item.setText(2, f"Powtórzenia: {correct_reps}/{total_reps}")
+            set_item.setForeground(0, QBrush(QColor("#00cc66")))
+
+            dur_item = QTreeWidgetItem(set_item)
+            dur_item.setText(0, " ⏱ Czas trwania")
+            dur_item.setText(1, f"{duration} sek.")
+
+            if not reps_list:
+                continue
+
+            for r_idx, rep in enumerate(reps_list):
+                rep_item = QTreeWidgetItem(set_item)
+                rep_item.setText(0, f"   ↳ Powtórzenie {r_idx + 1}")
+
+                speed = 2.2
+                too_shallow = False
+                too_far = False
+                lacks_tempo = False
+
+                if isinstance(rep, dict):
+                    speed = rep.get("speed", 2.2)
+                    errors = rep.get("errors", {})
+                    too_shallow = bool(errors.get("legs_bent", False)) or bool(
+                        errors.get("too_shallow", False)
+                    )
+                    too_far = (
+                        bool(errors.get("too_narrow", False))
+                        or bool(errors.get("too_wide", False))
+                        or bool(errors.get("too_far_from_chair", False))
+                    )
+                    lacks_tempo = bool(errors.get("bad_torso_angle", False)) or bool(
+                        errors.get("lacks_tempo_control", False)
+                    )
+                else:
+                    length = len(rep)
+                    if length == 5:
+                        speed = rep[0]
+                        too_shallow = bool(rep[2])
+                        too_far = bool(rep[3])
+                        lacks_tempo = bool(rep[4])
+                    elif length >= 7:
+                        speed = rep[2]
+                        too_shallow = bool(rep[4])
+                        too_far = bool(rep[5])
+                        lacks_tempo = bool(rep[6])
+                    else:
+                        speed = rep[0] if length > 0 else 2.2
+                        too_shallow = bool(rep[1]) if length > 1 else False
+
+                is_faulty = too_shallow or too_far or lacks_tempo
+                status_text = "Z błędami" if is_faulty else "Poprawne"
+                rep_item.setText(1, f"Status: {status_text} ({speed}s)")
+
+                active_errors = []
+                if too_shallow:
+                    active_errors.append("za płytko")
+                if too_far:
+                    active_errors.append("za daleko od krzesła")
+                if lacks_tempo:
+                    active_errors.append("brak kontroli tempa")
+
+                if not is_faulty:
+                    rep_item.setForeground(1, QBrush(QColor("#00cc66")))
+                    rep_item.setText(2, "Brak uwag")
+                    rep_item.setForeground(2, QBrush(QColor("#00cc66")))
+                else:
+                    rep_item.setForeground(1, QBrush(QColor("#ff3333")))
+
+                    error_string = ", ".join(active_errors)
+                    rep_item.setText(2, error_string)
+                    rep_item.setForeground(2, QBrush(QColor("#ffaa00")))
+
+        # Po załadowaniu wszystkich danych, zmuszamy drzewo do przeliczenia geometrii klatek
+        self.doItemsLayout()
+
+==> ./menuModule/menu.py <==
+# ==> ./menuModule/menu.py <==
+import sys
+
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import (
+    QApplication,
+    QFrame,
+    QGraphicsBlurEffect,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
+
+
+class Screen:
+    """Klasa reprezentująca pojedynczy ekran aplikacji (Menu + Zawartość)."""
+
+    def __init__(self, content_widget: QWidget):
+        self.content_widget = content_widget
+        self.options = []  # Lista krotek: (tekst_przycisku, funkcja_callback)
+
+    def add_option(self, text: str, callback):
+        """Dodaje opcję do lewego menu dla tego konkretnego ekranu."""
+        self.options.append((text, callback))
+
+
+class AppWindow(QWidget):
+    """Główne okno-szablon działające jako silnik aplikacji z zablokowanym podziałem."""
+
+    def __init__(self, title="Aplikacja", bg_image_path="gui_background.jpeg"):
+        super().__init__()
+        self.setWindowTitle(title)
+
+        screen_geom = QApplication.primaryScreen().geometry()
+        self.resize(int(screen_geom.width() * 0.8), int(screen_geom.height() * 0.8))
+        self.setMinimumSize(900, 600)
+
+        self._screens = {}
+
+        # ===== BACKGROUND =====
+        self.bg_label = QLabel(self)
+        self.bg_label.setScaledContents(True)
+        if bg_image_path:
+            self.bg_label.setPixmap(QPixmap(bg_image_path))
+
+        blur = QGraphicsBlurEffect()
+        blur.setBlurRadius(20)
+        self.bg_label.setGraphicsEffect(blur)
+
+        # ===== ROOT CONTAINER =====
+        self.main_container = QWidget(self)
+        root_layout = QHBoxLayout(self.main_container)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.split_layout = QHBoxLayout()
+        self.split_layout.setSpacing(10)
+        root_layout.addLayout(self.split_layout)
+
+        # ======================
+        # LEFT MENU (Stacked)
+        # ======================
+        self.menu_wrapper = QWidget()
+        self.menu_wrapper.setMinimumWidth(220)
+        self.menu_wrapper.setMaximumWidth(380)
+
+        self.wrapper_layout = QVBoxLayout(self.menu_wrapper)
+        self.menu_stack = QStackedWidget()
+        self.wrapper_layout.addWidget(self.menu_stack, alignment=Qt.AlignTop)
+
+        # ======================
+        # RIGHT CONTENT (Stacked)
+        # ======================
+        self.content_frame = QFrame()
+        self.content_frame.setObjectName("contentArea")
+
+        self.content_layout = QVBoxLayout(self.content_frame)
+        self.content_layout.setContentsMargins(20, 20, 20, 20)
+
+        self.content_stack = QStackedWidget()
+        self.content_layout.addWidget(self.content_stack)
+
+        self.split_layout.addWidget(self.menu_wrapper, stretch=3)
+        self.split_layout.addWidget(self.content_frame, stretch=7)
+
+        self.setStyleSheet("""
+        QWidget { background: transparent; }
+        #menuCard {
+            background-color: rgba(80, 80, 80, 200);
+            border-radius: 20px;
+        }
+        QPushButton {
+            background-color: rgba(60, 60, 60, 220);
+            color: white;
+            border-radius: 10px;
+            padding: 8px;
+            text-align: left;
+            font-size: 14px;
+        }
+        QPushButton:hover {
+            background-color: #00cc66;
+            color: black;
+        }
+        #contentArea {
+            background-color: rgba(30, 30, 30, 220);
+            border-radius: 10px;
+        }
+        """)
+
+    def resizeEvent(self, event):
+        self.bg_label.setGeometry(self.rect())
+        self.main_container.setGeometry(self.rect())
+
+        w, h = self.width(), self.height()
+        pad_w, pad_h = int(w * 0.02), int(h * 0.03)
+
+        self.wrapper_layout.setContentsMargins(pad_w, pad_h, pad_w, pad_h)
+        self.split_layout.setContentsMargins(pad_w, pad_h, pad_w, pad_h)
+
+        for i in range(self.menu_stack.count()):
+            card = self.menu_stack.widget(i)
+            if card and card.layout():
+                card.layout().setContentsMargins(pad_w, pad_h, pad_w, pad_h)
+
+        super().resizeEvent(event)
+
+    def register_screen(self, name: str, screen: Screen):
+        """Rejestruje nowy ekran w aplikacji."""
+        menu_card = QFrame()
+        menu_card.setObjectName("menuCard")
+        menu_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+
+        card_layout = QVBoxLayout(menu_card)
+        card_layout.setSpacing(8)
+
+        for text, callback in screen.options:
+            btn = QPushButton(text)
+            btn.clicked.connect(callback)
+            card_layout.addWidget(btn)
+
+        self.menu_stack.addWidget(menu_card)
+        self.content_stack.addWidget(screen.content_widget)
+        self._screens[name] = self.menu_stack.count() - 1
+
+    def switch_to_screen(self, name: str):
+        """Zmienia aktualnie wyświetlany ekran."""
+        if name in self._screens:
+            idx = self._screens[name]
+            self.menu_stack.setCurrentIndex(idx)
+            self.content_stack.setCurrentIndex(idx)
+        else:
+            print(f"Błąd: Ekran o nazwie '{name}' nie istnieje.")
+
+    def refresh_screen_menu(self, name: str, screen: Screen):
+        """Usuwa stare przyciski z menu_card danego ekranu i generuje je na nowo."""
+        if name in self._screens:
+            idx = self._screens[name]
+            menu_card = self.menu_stack.widget(idx)
+
+            if menu_card and menu_card.layout():
+                layout = menu_card.layout()
+                while layout.count():
+                    item = layout.takeAt(0)
+                    widget = item.widget()
+                    if widget:
+                        widget.deleteLater()
+
+                for text, callback in screen.options:
+                    btn = QPushButton(text)
+                    btn.clicked.connect(callback)
+                    layout.addWidget(btn)
+
+==> ./menuModule/screens/analyze_progress_screen.py <==
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QBrush, QColor
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QLabel,
+    QStackedWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
+from src.menuModule.menu import Screen
+from src.menuModule.widgets.progress_chart_widget import ProgressChartWidget
+from src.menuModule.widgets.training_data_history_widget import (
+    TrainingDataHistoryWidget,
+)
+
+
+class AnalyzeProgressScreen(Screen):
+
+    def __init__(self, navigator_cb, load_data_action_cb, get_db_connection_cb=None):
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(10, 10, 10, 10)
+
+        lbl_info = QLabel("Centrum Statystyk i Historii Treningu")
+        lbl_info.setStyleSheet(
+            "color: #00cc66; font-size: 20px; font-weight: bold; margin-bottom: 5px;"
+        )
+        lbl_info.setAlignment(Qt.AlignCenter)
+        layout.addWidget(lbl_info)
+
+        self.display_stack = QStackedWidget()
+
+        self.history_widget = TrainingDataHistoryWidget()
+        self.display_stack.addWidget(self.history_widget)
+
+        self.chart_widget = ProgressChartWidget()
+        self.display_stack.addWidget(self.chart_widget)
+
+        layout.addWidget(self.display_stack)
+
+        super().__init__(container)
+
+        self.load_data_cb = load_data_action_cb
+        self.get_db_conn = get_db_connection_cb
+        self.cached_sets_data = []
+
+        self.add_option("Wczytaj dane treningowe", self._load_training_data)
+        self.add_option("Jakość serii", self._analyze_set_quality)
+        self.add_option("Ilość powtórzeń", self._analyze_reps_count)
+        self.add_option("Czas trwania serii", self._analyze_duration)
+        self.add_option("Liczba serii w ciągu dnia", self._analyze_sets_per_day)
+        self.add_option("Pokaż historię (Drzewo)", self._show_history_tree)
+        self.add_option("Wróć", lambda: navigator_cb("main_page"))
+
+    def _load_training_data(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self.content_widget,
+            "Wybierz plik bazy danych z treningami",
+            "",
+            "Baza danych SQLite (*.db *.sqlite);;Wszystkie pliki (*)",
+        )
+
+        if not file_path:
+            return
+
+        self.cached_sets_data.clear()
+        self.history_widget.clear()
+        self.chart_widget.clear_chart()
+        self._show_history_tree()
+
+        loading_item = QTreeWidgetItem(self.history_widget)
+        loading_item.setText(0, "⌛ Wczytywanie danych z bazy... Proszę czekać.")
+        loading_item.setForeground(0, QBrush(QColor("#ffcc00")))
+
+        if self.load_data_cb:
+            self.load_data_cb(file_path)
+
+    def handle_async_data_loaded(self, raw_sets_data):
+        if isinstance(raw_sets_data, (dict, tuple)) and not isinstance(
+            raw_sets_data, list
+        ):
+            exec_date = (
+                raw_sets_data.get("metadata", {}).get("date")
+                if isinstance(raw_sets_data, dict)
+                else raw_sets_data[1]
+            )
+
+            is_duplicate = False
+            for record in self.cached_sets_data:
+                existing_date = (
+                    record.get("metadata", {}).get("date")
+                    if isinstance(record, dict)
+                    else record[1]
+                )
+                if existing_date == exec_date:
+                    is_duplicate = True
+                    break
+
+            if not is_duplicate:
+                self.cached_sets_data.append(raw_sets_data)
+
+        elif isinstance(raw_sets_data, list):
+            if raw_sets_data and isinstance(raw_sets_data[0], (dict, tuple)):
+                self.cached_sets_data = list(raw_sets_data)
+            else:
+                if raw_sets_data not in self.cached_sets_data:
+                    self.cached_sets_data.append(raw_sets_data)
+
+        if self.cached_sets_data:
+            self.history_widget.populate_data(self.cached_sets_data)
+
+    def _check_data_ready(self) -> bool:
+        if not self.cached_sets_data:
+            self.display_stack.setCurrentWidget(self.chart_widget)
+            self.chart_widget.clear_chart()
+            self.chart_widget.chart.setTitle(
+                "Brak danych! Najpierw kliknij 'Wczytaj dane treningowe' i wybierz plik bazy."
+            )
+            self.chart_widget.chart.setTitleBrush(QBrush(QColor("#cc0000")))
+            return False
+        return True
+
+    def _show_history_tree(self):
+        self.display_stack.setCurrentWidget(self.history_widget)
+
+    def _analyze_set_quality(self):
+        """Calculates fine-grained performance indices based on composite non-error point aggregates."""
+        if not self._check_data_ready():
+            return
+
+        self.display_stack.setCurrentWidget(self.chart_widget)
+        chart_data = []
+
+        for row in self.cached_sets_data:
+            meta = row["metadata"]
+            repetitions = row.get("repetitions", [])
+
+            if len(repetitions) > 0:
+                total_set_percentage = 0.0
+                for rep in repetitions:
+                    if isinstance(rep, dict):
+                        errors_map = rep.get("errors", {})
+                        shallow = (
+                            1
+                            if bool(errors_map.get("legs_bent", False))
+                            or bool(errors_map.get("too_shallow", False))
+                            else 0
+                        )
+                        far = (
+                            1
+                            if (
+                                bool(errors_map.get("too_narrow", False))
+                                or bool(errors_map.get("too_wide", False))
+                                or bool(errors_map.get("too_far_from_chair", False))
+                            )
+                            else 0
+                        )
+                        tempo = (
+                            1
+                            if bool(errors_map.get("bad_torso_angle", False))
+                            or bool(errors_map.get("lacks_tempo_control", False))
+                            else 0
+                        )
+                    else:
+                        length = len(rep)
+                        if length == 5:
+                            shallow = int(rep[2])
+                            far = int(rep[3])
+                            tempo = int(rep[4])
+                        elif length >= 7:
+                            shallow = int(rep[4])
+                            far = int(rep[5])
+                            tempo = int(rep[6])
+                        else:
+                            shallow = int(rep[1]) if length > 1 else 0
+                            far = 0
+                            tempo = 0
+
+                    active_errors_count = shallow + far + tempo
+
+                    # System sportowy rygorystyczny - 1 błąd = oblane powtórzenie (0%)
+                    rep_percentage = 100.0 if active_errors_count == 0 else 0.0
+                    total_set_percentage += rep_percentage
+
+                calculated_set_average = total_set_percentage / len(repetitions)
+                chart_data.append((meta["date"], calculated_set_average))
+            else:
+                if meta.get("total", 0) > 0:
+                    ratio_percentage = (meta["correct"] / meta["total"]) * 100.0
+                    chart_data.append((meta["date"], ratio_percentage))
+
+        chart_data.sort(key=lambda x: x[0])
+
+        self.chart_widget.display_line_chart(
+            data=chart_data,
+            title="Analiza Postępów: Procentowa Jakość Wykonania Powtórzeń",
+            y_label="Średnia dokładność serii (%)",
+            is_percentage=True,
+        )
+
+    def _analyze_reps_count(self):
+        if not self._check_data_ready():
+            return
+
+        self.display_stack.setCurrentWidget(self.chart_widget)
+        chart_data = [
+            (row["metadata"]["date"], row["metadata"]["total"])
+            for row in self.cached_sets_data
+        ]
+        chart_data.sort(key=lambda x: x[0])
+        self.chart_widget.display_line_chart(
+            data=chart_data,
+            title="Analiza Postępów: Liczba Powtórzeń w Seriach",
+            y_label="Suma powtórzeń (reps)",
+        )
+
+    def _analyze_duration(self):
+        if not self._check_data_ready():
+            return
+
+        self.display_stack.setCurrentWidget(self.chart_widget)
+        chart_data = [
+            (row["metadata"]["date"], row["metadata"]["duration"])
+            for row in self.cached_sets_data
+        ]
+        chart_data.sort(key=lambda x: x[0])
+        self.chart_widget.display_line_chart(
+            data=chart_data,
+            title="Analiza Postępów: Czas Trwania Serii",
+            y_label="Czas (sekundy)",
+        )
+
+    def _analyze_sets_per_day(self):
+        if not self._check_data_ready():
+            return
+
+        self.display_stack.setCurrentWidget(self.chart_widget)
+        daily_counts = {}
+
+        for row in self.cached_sets_data:
+            exec_date = row["metadata"]["date"]
+            if exec_date and len(exec_date) >= 10:
+                date_only = exec_date[:10]
+                daily_counts[date_only] = daily_counts.get(date_only, 0) + 1
+
+        # Sortujemy chronologicznie
+        sorted_daily_data = sorted(daily_counts.items())
+
+        self.chart_widget.display_bar_chart(
+            data=sorted_daily_data,
+            title="Analiza Częstotliwości: Liczba Serii Wykonanych w Ciągu Dnia",
+            y_label="Liczba serii",
+        )
+
+==> ./menuModule/screens/load_set_screen.py <==
+import os
+
+from PySide6.QtWidgets import (
+    QDialog,
+    QFileDialog,
+    QInputDialog,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
+
+from src.include.set_data import Repetition, WorkoutSet
+from src.menuModule.menu import Screen
+from src.menuModule.widgets.date_dialog import DateTimeDialog
+from src.menuModule.widgets.training_data_history_widget import (
+    TrainingDataHistoryWidget,
+)
+from src.menuModule.widgets.video_player import VideoAnalysisThread, VideoDisplayWidget
+from src.menuModule.widgets.video_sync_widget import VideoSyncWidget
+from src.videoAnalysisModule.VideoAnalyzer import VideoAnalyzer
+
+
+class LoadSetScreen(Screen):
+    def __init__(self, navigator_cb):
+        self.main_container = QWidget()
+        main_layout = QVBoxLayout(self.main_container)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+
+        self.analyzer = VideoAnalyzer()
+        self.workout_set = WorkoutSet(location="None", duration=0)
+
+        self.display_stack = QStackedWidget()
+        main_layout.addWidget(self.display_stack)
+
+        self.sync_widget = VideoSyncWidget()
+        self.display_stack.addWidget(self.sync_widget)
+
+        self.history_preview_widget = TrainingDataHistoryWidget()
+        self.display_stack.addWidget(self.history_preview_widget)
+
+        self.video_display = VideoDisplayWidget()
+        self.display_stack.addWidget(self.video_display)
+
+        super().__init__(self.main_container)
+        self.navigator_cb = navigator_cb
+
+        self.front_video_path = None
+        self.side_video_path = None
+        self.analysis_thread = None
+
+        self._build_menu()
+        self._refresh_history_tree()
+
+    def _build_menu(self):
+        self.options.clear()
+        front_txt = f"📸 Przód: {self._get_filename_or_empty(self.front_video_path)}"
+        self.add_option(front_txt, self._select_front_video)
+
+        side_txt = f"📸 Bok: {self._get_filename_or_empty(self.side_video_path)}"
+        self.add_option(side_txt, self._select_side_video)
+
+        self.add_option(
+            f"📍 Lokalizacja: {self.workout_set.location}", self._set_location
+        )
+        self.add_option(
+            f"📅 Data i godzina: {self.workout_set.execution_date[:16]}",
+            self._set_datetime,
+        )
+
+        self.add_option("⚙️ Analizuj", self._execute_analysis_processing)
+        self.add_option("📊 Pokaż statystyki (Drzewo)", self._show_static_stats)
+        self.add_option("👁️ Uruchom podgląd AR", self._start_video_analysis)
+        self.add_option("💾 Zapisz serię do bazy", self._save_set_to_database)
+        self.add_option("⬅️ Wróć", self._on_back_clicked)
+
+    def _get_filename_or_empty(self, path):
+        return os.path.basename(path) if path else "--- WYBIERZ ---"
+
+    def _select_front_video(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self.main_container,
+            "Wybierz nagranie z przodu",
+            "",
+            "Wideo (*.mp4 *.avi *.mov)",
+        )
+        if path:
+            self.front_video_path = path
+            self.display_stack.setCurrentIndex(0)
+            self.sync_widget.load_videos(self.front_video_path, self.side_video_path)
+            self._update_menu_and_refresh()
+
+    def _select_side_video(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self.main_container,
+            "Wybierz nagranie z boku",
+            "",
+            "Wideo (*.mp4 *.avi *.mov)",
+        )
+        if path:
+            self.side_video_path = path
+            self.display_stack.setCurrentIndex(0)
+            self.sync_widget.load_videos(self.front_video_path, self.side_video_path)
+            self._update_menu_and_refresh()
+
+    def _execute_analysis_processing(self):
+        """Pobiera dane natychmiast za pomocą inteligentnego gettera silnika VideoAnalyzer."""
+        if not self.front_video_path and not self.side_video_path:
+            QMessageBox.warning(
+                self.main_container,
+                "Brak plików",
+                "Załaduj pliki wideo przed uruchomieniem analizy!",
+            )
+            return
+
+        f_start, f_end, s_start, s_end = self.sync_widget.get_bounds()
+
+        self.sync_widget._release_caps()
+
+        results = self.analyzer.get_or_analyze_workout_set(
+            self.front_video_path,
+            self.side_video_path,
+            f_start,
+            f_end,
+            s_start,
+            s_end,
+            force_reanalyze=False,
+        )
+
+        self.workout_set = results["workout_set"]
+        self._refresh_history_tree()
+
+        self.display_stack.setCurrentWidget(self.history_preview_widget)
+
+        if results.get("mismatch", False):
+            QMessageBox.critical(
+                self.main_container,
+                "Niespójne dane",
+                "Wykryto drastyczne rozbieżności ruchu między kamerami!",
+            )
+
+        self.sync_widget.load_videos(self.front_video_path, self.side_video_path)
+        self.sync_widget.restore_bounds(f_start, f_end, s_start, s_end)
+
+    def _show_static_stats(self):
+        self.display_stack.setCurrentWidget(self.history_preview_widget)
+
+    def _start_video_analysis(self):
+        if not self.front_video_path and not self.side_video_path:
+            return
+
+        f_start, f_end, s_start, s_end = self.sync_widget.get_bounds()
+        bounds_tuple = (f_start, f_end, s_start, s_end)
+
+        # Jeśli dane są już w cache analizatora, nie musimy blokować interfejsu ani czyścić stanu
+        self.sync_widget._release_caps()
+
+        self.display_stack.setCurrentWidget(self.video_display)
+        self.video_display.set_modes(
+            bool(self.front_video_path), bool(self.side_video_path)
+        )
+        self._toggle_menu_buttons(enabled=False)
+
+        # Przekazujemy ten sam, instancyjny self.analyzer do wątku wątku roboczego
+        self.analysis_thread = VideoAnalysisThread(
+            self.analyzer,
+            self.front_video_path,
+            self.side_video_path,
+            f_start,
+            f_end,
+            s_start,
+            s_end,
+        )
+        self.analysis_thread.frame_processed.connect(self.video_display.update_frames)
+        self.analysis_thread.finished_analysis.connect(self._on_ar_playback_finished)
+        self.analysis_thread.start()
+
+    def _on_ar_playback_finished(self, final_stats):
+        self._toggle_menu_buttons(enabled=True)
+        self._execute_analysis_processing()
+
+    def _set_location(self):
+        text, ok = QInputDialog.getText(
+            self.main_container,
+            "Modyfikacja serii",
+            "Wpisz lokalizację treningu:",
+            QLineEdit.Normal,
+            self.workout_set.location,
+        )
+        if ok:
+            self.workout_set.location = text.strip() if text.strip() else "None"
+            if self.analyzer.cached_workout_set:
+                self.analyzer.cached_workout_set.location = self.workout_set.location
+            self._refresh_history_tree()
+            self._update_menu_and_refresh()
+
+    def _set_datetime(self):
+        dialog = DateTimeDialog(parent=self.main_container)
+        if dialog.exec() == QDialog.Accepted:
+            self.workout_set.execution_date = dialog.get_date_string()
+            if self.analyzer.cached_workout_set:
+                self.analyzer.cached_workout_set.execution_date = (
+                    self.workout_set.execution_date
+                )
+            self._refresh_history_tree()
+            self._update_menu_and_refresh()
+
+    def _refresh_history_tree(self):
+        total, correct, faulty = self.workout_set.summarize_set()
+        mapped_reps = []
+        for r in self.workout_set.repetitions:
+            mapped_reps.append(
+                (
+                    None,
+                    None,
+                    r.execution_speed_seconds,
+                    r.quality_status,
+                    1 if getattr(r, "error_too_shallow", False) else 0,
+                    1 if getattr(r, "error_too_far_from_chair", False) else 0,
+                    1 if getattr(r, "error_lacks_tempo_control", False) else 0,
+                )
+            )
+        cache_contract = {
+            "metadata": {
+                "date": self.workout_set.execution_date,
+                "location": self.workout_set.location,
+                "duration": self.workout_set.duration_seconds,
+                "total": total,
+                "correct": correct,
+                "faulty": faulty,
+            },
+            "repetitions": mapped_reps,
+        }
+        self.history_preview_widget.populate_data([cache_contract])
+
+    def _save_set_to_database(self):
+        if not self.workout_set.repetitions:
+            QMessageBox.critical(
+                self.main_container,
+                "Zapis przerwany",
+                "Seria jest pusta. Kliknij najpierw 'Analizuj'.",
+            )
+            return
+
+        db_path, _ = QFileDialog.getSaveFileName(
+            self.main_container,
+            "Wybierz plik bazy danych",
+            "",
+            "Bazy danych (*.db *.sqlite)",
+        )
+        if not db_path:
+            return
+
+        window = self.main_container.window()
+        if window and hasattr(window, "db_module"):
+            window.db_module.db_path = db_path
+            if hasattr(window, "_ensure_db_thread_is_alive"):
+                window._ensure_db_thread_is_alive(db_path)
+            window.db_module.request_set_save(self.workout_set)
+            QMessageBox.information(
+                self.main_container, "Sukces", "Seria zapisana pomyślnie."
+            )
+            self._on_back_clicked()
+
+    def _toggle_menu_buttons(self, enabled: bool):
+        window = self.main_container.window()
+        if window and hasattr(window, "menu_stack"):
+            active_card = window.menu_stack.currentWidget()
+            if active_card:
+                for btn in active_card.findChildren(QPushButton):
+                    if "Wróć" not in btn.text():
+                        btn.setEnabled(enabled)
+
+    def _update_menu_and_refresh(self):
+        self._build_menu()
+        window = self.main_container.window()
+        if window and hasattr(window, "refresh_screen_menu"):
+            window.refresh_screen_menu("load_set", self)
+
+    def _on_back_clicked(self):
+        if self.analysis_thread and self.analysis_thread.isRunning():
+            self.analysis_thread.stop()
+        self.sync_widget._release_caps()
+        self.front_video_path = None
+        self.side_video_path = None
+        self.workout_set = WorkoutSet(location="None", duration=0)
+        self.analyzer.cached_workout_set = None
+        self.analyzer.cached_bounds = None
+        self._refresh_history_tree()
+        self.display_stack.setCurrentIndex(0)
+        self._update_menu_and_refresh()
+        self.navigator_cb("main_page")
+
+==> ./menuModule/screens/__init__.py <==
+
+==> ./menuModule/screens/main_screen.py <==
+from src.menuModule.screens.base_screen import BaseScreen
+
+
+class MainScreen(BaseScreen):
+    def __init__(self, navigator_cb):
+        super().__init__("CyberTrener AI", "Witaj! Wybierz moduł z menu po lewej.")
+        self.add_option("Tworzenie serii", lambda: navigator_cb("create_set"))
+        self.add_option("Wczytywanie serii", lambda: navigator_cb("load_set"))
+        self.add_option("Analiza postępów", lambda: navigator_cb("analyze_progress"))
+        self.add_option("Zamknij program", lambda: navigator_cb("close"))
+
+==> ./menuModule/screens/manual_definition_screen.py <==
+import json
+import sqlite3
+from datetime import datetime
+
+from PySide6.QtCore import QObject, Signal
+from PySide6.QtWidgets import QDialog, QFileDialog, QInputDialog, QLineEdit, QMessageBox
+
+from src.include.set_data import Repetition, WorkoutSet
+from src.menuModule.menu import Screen
+from src.menuModule.widgets.date_dialog import DateTimeDialog
+from src.menuModule.widgets.manual_set_widget import (
+    DurationDialog,
+    ManualPreviewWidget,
+    RepetitionDialog,
+)
+
+
+class ManualDefinitionScreen(Screen, QObject):
+    save_requested = Signal(object)
+
+    def __init__(self, navigator_cb, parent_widget):
+        QObject.__init__(self)
+        self.parent_widget = parent_widget
+        self.navigator_cb = navigator_cb
+
+        self.manual_set = WorkoutSet(location="", duration=0)
+        self.manual_set.execution_date = ""
+
+        self.manual_preview = ManualPreviewWidget()
+        super().__init__(self.manual_preview)
+
+        self.add_option("📍 Location", self._set_manual_location)
+        self.add_option("⏱ Duration Delta", self._set_manual_duration)
+        self.add_option("📅 Timestamp", self._set_manual_datetime)
+        self.add_option("＋ Append Repetition", self._add_manual_repetition)
+        self.add_option("📥 Import from JSON Structure", self._import_from_json)
+        self.add_option("💾 Commit Set to Database", self._save_manual_to_db)
+        self.add_option("⬅ Back", lambda: self.navigator_cb("create_set"))
+
+        self._refresh_right_preview()
+
+    def reset_set(self):
+        self.manual_set = WorkoutSet(location="", duration=0)
+        self.manual_set.execution_date = ""
+        self._refresh_right_preview()
+
+    def _refresh_right_preview(self):
+        location_label = self.manual_set.location if self.manual_set.location else "___"
+        if self.manual_set.duration_seconds > 0:
+            minutes = self.manual_set.duration_seconds // 60
+            seconds = self.manual_set.duration_seconds % 60
+            duration_label = f"{minutes}m {seconds}s" if minutes > 0 else f"{seconds}s"
+        else:
+            duration_label = "___"
+
+        timestamp_label = (
+            self.manual_set.execution_date if self.manual_set.execution_date else "___"
+        )
+        self.manual_preview.update_view(
+            location_label, duration_label, timestamp_label, self.manual_set.repetitions
+        )
+
+    def _set_manual_location(self):
+        text, ok = QInputDialog.getText(
+            self.parent_widget,
+            "Session Configuration",
+            "Enter location label:",
+            QLineEdit.Normal,
+            self.manual_set.location,
+        )
+        if ok:
+            self.manual_set.location = text.strip()
+            self._refresh_right_preview()
+
+    def _set_manual_duration(self):
+        dialog = DurationDialog(
+            current_total_seconds=self.manual_set.duration_seconds,
+            parent=self.parent_widget,
+        )
+        if dialog.exec() == DurationDialog.Accepted:
+            self.manual_set.duration_seconds = dialog.get_total_seconds()
+            self._refresh_right_preview()
+
+    def _set_manual_datetime(self):
+        dialog = DateTimeDialog(parent=self.parent_widget)
+        if dialog.exec() == QDialog.Accepted:
+            self.manual_set.execution_date = dialog.get_date_string()
+            self._refresh_right_preview()
+
+    def _add_manual_repetition(self):
+        dialog = RepetitionDialog(self.parent_widget)
+        if dialog.exec() == RepetitionDialog.Accepted:
+            self.manual_set.add_repetition(dialog.get_data())
+            self._refresh_right_preview()
+
+    def _import_from_json(self):
+        json_path, _ = QFileDialog.getOpenFileName(
+            self.content_widget,
+            "Select JSON Configuration Source",
+            "",
+            "JSON Structured Profiles (*.json)",
+        )
+        if not json_path:
+            return
+
+        db_path, _ = QFileDialog.getSaveFileName(
+            self.content_widget,
+            "Select Target SQLite Destination Database (.db)",
+            "",
+            "Database Engines (*.db *.sqlite);;All Files (*)",
+        )
+        if not db_path:
+            return
+
+        db_connection = None
+        try:
+            with open(json_path, "r", encoding="utf-8") as file_stream:
+                parsed_json = json.load(file_stream)
+
+            if isinstance(parsed_json, dict):
+                series_data_list = [parsed_json]
+            elif isinstance(parsed_json, list):
+                series_data_list = parsed_json
+            else:
+                raise ValueError(
+                    "Corrupted schema architecture payload wrapper detected."
+                )
+
+            db_connection = sqlite3.connect(db_path)
+            db_cursor = db_connection.cursor()
+            db_cursor.execute("PRAGMA foreign_keys = ON;")
+
+            db_cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    execution_date TEXT, location TEXT, duration_seconds INTEGER,
+                    total_reps INTEGER, correct_reps INTEGER, faulty_reps INTEGER
+                )""")
+            db_cursor.execute("""
+                CREATE TABLE IF NOT EXISTS repetitions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, set_id INTEGER,
+                    execution_speed_seconds REAL, quality_status TEXT,
+                    error_too_shallow INTEGER, error_too_far_from_chair INTEGER, error_lacks_tempo_control INTEGER,
+                    FOREIGN KEY(set_id) REFERENCES sets(id) ON DELETE CASCADE
+                )""")
+
+            saved_counter = 0
+            for structure_item in series_data_list:
+                metadata = structure_item.get("metadata", {})
+                extracted_date = metadata.get("date", "")
+                extracted_loc = metadata.get("location", "JSON Bulk Import")
+                extracted_dur = int(metadata.get("duration_seconds", 0))
+
+                if not extracted_date:
+                    extracted_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                repetitions_payload = structure_item.get("repetitions", [])
+                if not repetitions_payload:
+                    continue
+
+                total_reps = len(repetitions_payload)
+                correct_reps = sum(
+                    1 for r in repetitions_payload if r.get("quality") == "Correct"
+                )
+                faulty_reps = total_reps - correct_reps
+
+                db_cursor.execute(
+                    """
+                    INSERT INTO sets (execution_date, location, duration_seconds, total_reps, correct_reps, faulty_reps)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        extracted_date,
+                        extracted_loc,
+                        extracted_dur,
+                        total_reps,
+                        correct_reps,
+                        faulty_reps,
+                    ),
+                )
+                generated_set_id = db_cursor.lastrowid
+
+                for single_rep in repetitions_payload:
+                    speed = float(single_rep.get("speed", 2.2))
+                    quality_status = single_rep.get("quality", "Correct")
+                    error_flags = single_rep.get("errors", {})
+
+                    error_too_shallow = (
+                        1 if bool(error_flags.get("legs_bent", False)) else 0
+                    )
+                    error_too_far_from_chair = (
+                        1
+                        if (
+                            bool(error_flags.get("too_narrow", False))
+                            or bool(error_flags.get("too_wide", False))
+                        )
+                        else 0
+                    )
+                    error_lacks_tempo_control = (
+                        1 if bool(error_flags.get("bad_torso_angle", False)) else 0
+                    )
+
+                    db_cursor.execute(
+                        """
+                        INSERT INTO repetitions (
+                            set_id, execution_speed_seconds, quality_status, 
+                            error_too_shallow, error_too_far_from_chair, error_lacks_tempo_control
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            generated_set_id,
+                            speed,
+                            quality_status,
+                            error_too_shallow,
+                            error_too_far_from_chair,
+                            error_lacks_tempo_control,
+                        ),
+                    )
+                saved_counter += 1
+
+            db_connection.commit()
+            self.reset_set()
+
+            if hasattr(self.parent_widget, "db_module"):
+                self.parent_widget.db_module.db_path = db_path
+                if hasattr(self.parent_widget.db_module, "request_all_data"):
+                    self.parent_widget.db_module.request_all_data()
+
+            QMessageBox.information(
+                self.parent_widget,
+                "Import Complete",
+                f"Successfully extracted training profiles!\nCommitted {saved_counter} sets directly to database file:\n{db_path}",
+            )
+        except Exception as e:
+            if db_connection:
+                db_connection.rollback()
+            QMessageBox.critical(
+                self.parent_widget,
+                "Serialization Error",
+                f"Failed to record data blocks on storage targets:\n{str(e)}",
+            )
+        finally:
+            if db_connection:
+                db_connection.close()
+
+    def _save_manual_to_db(self):
+        if not self.manual_set.repetitions:
+            QMessageBox.warning(
+                self.parent_widget,
+                "Verification Halt",
+                "Cannot save an empty sequence containing zero repetitions.",
+            )
+            return
+
+        if not self.manual_set.location:
+            self.manual_set.location = "Home"
+        if not self.manual_set.execution_date:
+            self.manual_set.execution_date = datetime.now().strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+
+        self.save_requested.emit(self.manual_set)
+
+==> ./menuModule/screens/create_set_screen.py <==
+from PySide6.QtCore import QDateTime, Qt
+from PySide6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QHBoxLayout,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+from src.dataStorageModule.DataStorageModule import DatabaseModule
+from src.menuModule.menu import Screen
+from src.menuModule.widgets.camera_live_thread import CameraLiveThread
+from src.menuModule.widgets.camera_preview_thread import CameraPreviewThread
+from src.menuModule.widgets.date_dialog import DateTimeDialog
+from src.menuModule.widgets.video_player import VideoDisplayWidget
+from src.videoAnalysisModule.VideoAnalyzer import VideoAnalyzer
+
+
+class MockWorkoutSet:
+    def __init__(self):
+        self.location = "Siłownia"
+        self.execution_date = QDateTime.currentDateTime().toString(
+            "yyyy-MM-dd HH:mm:ss"
+        )
+        self.duration_seconds = 45
+        self.repetitions = []
+
+
+class CreateSetScreen(Screen):
+    def __init__(self, navigator_cb):
+        self.main_container = QWidget()
+        main_layout = QVBoxLayout(self.main_container)
+        main_layout.setContentsMargins(15, 15, 15, 15)
+
+        self.analyzer = VideoAnalyzer()
+        self.db_module = DatabaseModule()
+        self.db_module.start()
+
+        self.navigator_cb = navigator_cb
+        self.live_thread = None
+        self.preview_thread = None
+        self.compiled_live_set = None
+        self.workout_set = MockWorkoutSet()
+
+        # 1. Konfiguracja kamer na samej górze
+        setup_panel = QHBoxLayout()
+        setup_panel.addWidget(QLabel("Kamera przód:"))
+        self.combo_front = QComboBox()
+        self.combo_front.addItems(["Kamera 0", "Kamera 1", "Brak"])
+        self.combo_front.currentIndexChanged.connect(self._restart_pasywny_podglad)
+        setup_panel.addWidget(self.combo_front)
+
+        setup_panel.addWidget(QLabel("Kamera bok:"))
+        self.combo_side = QComboBox()
+        self.combo_side.addItems(["Kamera 1", "Kamera 0", "Kamera 2", "Brak"])
+        self.combo_side.setCurrentIndex(1)
+        self.combo_side.currentIndexChanged.connect(self._restart_pasywny_podglad)
+        setup_panel.addWidget(self.combo_side)
+        main_layout.addLayout(setup_panel)
+
+        # 2. Monit statusu bezpośrednio pod konfiguracją kamer
+        self.lbl_coach_status = QLabel(
+            "Skonfiguruj urządzenia wideo i uruchom trenera na żywo."
+        )
+        self.lbl_coach_status.setStyleSheet(
+            "color: #ffcc00; font-size: 14px; font-weight: bold; margin-top: 5px; margin-bottom: 5px;"
+        )
+        self.lbl_coach_status.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(self.lbl_coach_status)
+
+        # 3. Widżet podglądu wideo
+        self.video_display = VideoDisplayWidget()
+        self.video_display.setFixedHeight(380)
+        main_layout.addWidget(self.video_display)
+
+        super().__init__(self.main_container)
+        self._build_menu()
+
+        # Uruchomienie ciągłego podglądu strumieni od razu przy wejściu do ekranu
+        self._restart_pasywny_podglad()
+
+    def _build_menu(self):
+        self.options.clear()
+        self.add_option("▶️ Uruchom Trenera AI", self._start_live_workout)
+        self.add_option("🛑 Zatrzymaj Analizę", self._stop_live_workout)
+
+        # Metadane zintegrowane w menu bocznym aplikacji
+        self.add_option(
+            f"📍 Lokalizacja: {self.workout_set.location}", self._set_location
+        )
+        self.add_option(
+            f"📅 Data i godzina: {self.workout_set.execution_date[:16]}",
+            self._set_datetime,
+        )
+
+        self.add_option("💾 Zapisz serię do bazy", self._save_set_to_database)
+        self.add_option(
+            "✍️ Zdefiniuj serię ręcznie", lambda: self.navigator_cb("manual_definition")
+        )
+        self.add_option("⬅️ Wróć do menu", self._on_back_clicked)
+
+    def _set_location(self):
+        text, ok = QInputDialog.getText(
+            self.main_container,
+            "Modyfikacja serii",
+            "Wpisz lokalizację treningu na żywo:",
+            QLineEdit.Normal,
+            self.workout_set.location,
+        )
+        if ok:
+            self.workout_set.location = text.strip() if text.strip() else "Siłownia"
+            self._build_menu()
+
+    def _set_datetime(self):
+        dialog = DateTimeDialog(parent=self.main_container)
+        if dialog.exec() == QDialog.Accepted:
+            self.workout_set.execution_date = dialog.get_date_string()
+            self._build_menu()
+
+    def _restart_pasywny_podglad(self):
+        """Zapewnia ciągłe renderowanie strumieni wideo w czasie spoczynku."""
+        if self.live_thread and self.live_thread.isRunning():
+            return
+
+        if self.preview_thread and self.preview_thread.isRunning():
+            self.preview_thread.stop()
+
+        has_front = self.combo_front.currentText() != "Brak"
+        has_side = self.combo_side.currentText() != "Brak"
+
+        self.video_display.set_modes(has_front, has_side)
+
+        if has_front or has_side:
+            self.preview_thread = CameraPreviewThread(
+                self.combo_front.currentIndex(),
+                self.combo_side.currentIndex(),
+                has_front,
+                has_side,
+            )
+            self.preview_thread.frame_processed.connect(
+                self.video_display.update_frames
+            )
+            self.preview_thread.start()
+
+    def _start_live_workout(self):
+        if self.live_thread and self.live_thread.isRunning():
+            return
+
+        # Wyłączamy pasywny podgląd, by zwolnić deskryptory urządzeń dla analizatora MediaPipe
+        if self.preview_thread and self.preview_thread.isRunning():
+            self.preview_thread.stop()
+
+        has_front = self.combo_front.currentText() != "Brak"
+        has_side = self.combo_side.currentText() != "Brak"
+
+        if not has_front and not has_side:
+            QMessageBox.critical(
+                self.main_container,
+                "Błąd",
+                "Wybierz przynajmniej jedną działającą kamerę.",
+            )
+            self._restart_pasywny_podglad()
+            return
+
+        front_idx = self.combo_front.currentIndex()
+        side_idx = self.combo_side.currentIndex()
+
+        self.video_display.set_modes(has_front, has_side)
+        self._toggle_menu_buttons(enabled=False)
+        self.compiled_live_set = None
+
+        self.live_thread = CameraLiveThread(
+            self.analyzer, front_idx, side_idx, has_front, has_side
+        )
+        self.live_thread.frame_processed.connect(self.video_display.update_frames)
+        self.live_thread.status_msg_updated.connect(self.lbl_coach_status.setText)
+        self.live_thread.start()
+
+    def _stop_live_workout(self):
+        if self.live_thread and self.live_thread.isRunning():
+            self.live_thread.stop()
+            self.live_thread.wait()
+
+            self.compiled_live_set = self.analyzer.compile_and_cache_workout_set(
+                source_front="Live_Cam",
+                source_side="Live_Cam",
+                custom_metadata=(
+                    self.workout_set.execution_date,
+                    self.workout_set.location,
+                    self.workout_set.duration_seconds,
+                ),
+            )
+
+            self._toggle_menu_buttons(enabled=True)
+            self.lbl_coach_status.setText(
+                "Seria przechwycona. Możesz zsynchronizować dane z bazą SQLite."
+            )
+
+            self._restart_pasywny_podglad()
+
+    def _save_set_to_database(self):
+        if not self.compiled_live_set:
+            QMessageBox.warning(
+                self.main_container,
+                "Brak danych",
+                "Uruchom i zatrzymaj trening, aby przechwycić serię.",
+            )
+            return
+
+        try:
+            self.compiled_live_set.location = self.workout_set.location
+            self.compiled_live_set.execution_date = self.workout_set.execution_date
+
+            self.db_module.request_set_save(self.compiled_live_set)
+
+            QMessageBox.information(
+                self.main_container,
+                "Sukces",
+                "Seria na żywo została przekazana do asynchronicznej bazy danych.",
+            )
+            self.compiled_live_set = None
+            self.lbl_coach_status.setText("Zapisano. Gotowy na kolejną serię.")
+        except Exception as e:
+            QMessageBox.critical(self.main_container, "Błąd", f"Blokada zapisu: {e}")
+
+    def _toggle_menu_buttons(self, enabled: bool):
+        window = self.main_container.window()
+        if window and hasattr(window, "menu_stack"):
+            active_card = window.menu_stack.currentWidget()
+            if active_card:
+                for btn in active_card.findChildren(QPushButton):
+                    if (
+                        "Wróć" not in btn.text()
+                        and "Zatrzymaj" not in btn.text()
+                        and "Zapisz" not in btn.text()
+                    ):
+                        btn.setEnabled(enabled)
+
+    def _on_back_clicked(self):
+        if self.preview_thread and self.preview_thread.isRunning():
+            self.preview_thread.stop()
+        if self.live_thread and self.live_thread.isRunning():
+            self.live_thread.stop()
+            self.live_thread.wait()
+        self.navigator_cb("main_page")
+
+==> ./menuModule/screens/base_screen.py <==
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PySide6.QtCore import Qt
+from src.menuModule.menu import Screen
+
+
+class BaseScreen(Screen):
+    """Pomocnicza klasa bazowa ułatwiająca tworzenie powtarzalnych layoutów."""
+
+    def __init__(self, title: str, subtitle: str):
+        self.container = QWidget()
+        layout = QVBoxLayout(self.container)
+        layout.setAlignment(Qt.AlignCenter)
+
+        lbl_title = QLabel(title)
+        lbl_title.setStyleSheet(
+            "color: #00cc66; font-size: 28px; font-weight: bold; margin-bottom: 10px;"
+        )
+        lbl_title.setAlignment(Qt.AlignCenter)
+
+        lbl_sub = QLabel(subtitle)
+        lbl_sub.setStyleSheet("color: #dddddd; font-size: 16px;")
+        lbl_sub.setAlignment(Qt.AlignCenter)
+
+        layout.addWidget(lbl_title)
+        layout.addWidget(lbl_sub)
+        super().__init__(self.container)
+
+==> ./dataStorageModule/DataStorageModule.py <==
+import queue
+import sqlite3
+import threading
+
+from PySide6.QtCore import QObject, Signal
+
+
+class DatabaseSignals(QObject):
+    """Signals used to safely transport DB data back to the PySide6 main loop."""
+
+    data_loaded = Signal(list)
+
+
+class DatabaseModule(threading.Thread):
+    def __init__(self, db_path="cyber_trainer.db"):
+        super().__init__()
+        self.db_path = db_path
+        self.task_queue = queue.Queue()
+        self.daemon = True
+        self.conn = None
+        self.signals = DatabaseSignals()
+        self._current_conn_path = None  # Tracks the currently bound database file
+
+    def _verify_and_sync_connection(self):
+        """Ensures the SQLite handler points to the currently selected database file path."""
+        # If the path changed, close the old connection safely
+        if self.conn and self._current_conn_path != self.db_path:
+            print(
+                f"[Database] Switching database source path from {self._current_conn_path} -> {self.db_path}"
+            )
+            self.conn.close()
+            self.conn = None
+
+        # Open connection to the new database file path
+        if self.conn is None:
+            self.conn = sqlite3.connect(self.db_path)
+            self._current_conn_path = self.db_path
+            self._initialize_db()
+
+    def _initialize_db(self):
+        """Creates synchronized domain structure metrics if tables do not exist."""
+        self.conn.execute("PRAGMA foreign_keys = ON;")
+
+        # Session sets overview table
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS sets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                execution_date TEXT, location TEXT, duration_seconds INTEGER,
+                total_reps INTEGER, correct_reps INTEGER, faulty_reps INTEGER
+            )""")
+
+        # Unified tracking structure with explicit boolean binary flag errors
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS repetitions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, set_id INTEGER,
+                execution_speed_seconds REAL, quality_status TEXT,
+                error_too_shallow INTEGER, error_too_far_from_chair INTEGER, error_lacks_tempo_control INTEGER,
+                FOREIGN KEY(set_id) REFERENCES sets(id) ON DELETE CASCADE
+            )""")
+        self.conn.commit()
+
+    def run(self):
+        print("Database module background loop entered successfully.")
+
+        try:
+            while True:
+                task = self.task_queue.get()
+                if task is None:
+                    break
+
+                task_type, data, *callback = task
+
+                try:
+                    # CRITICAL: Verify path updates before running any transactional tasks
+                    self._verify_and_sync_connection()
+
+                    if task_type == "SAVE_SET":
+                        self._save_set_to_db(data)
+                    elif task_type == "GET_STATISTICS":
+                        result = self._get_statistics_from_db()
+                        if callback:
+                            callback[0](result)
+                    elif task_type == "FETCH_ALL_DATA":
+                        result = self._fetch_all_sets_and_reps()
+                        # Deliver fresh payload to UI signal handlers
+                        self.signals.data_loaded.emit(result)
+
+                except Exception as e:
+                    print(f"[Database Error] Routine crash inside {task_type}: {e}")
+                finally:
+                    self.task_queue.task_done()
+        finally:
+            if self.conn:
+                self.conn.close()
+
+    def _save_set_to_db(self, workout_set):
+        """Extracts runtime set details and logs unified cross-perspective repetitions."""
+        total_reps, correct_reps, faulty_reps = workout_set.summarize_set()
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO sets (execution_date, location, duration_seconds, total_reps, correct_reps, faulty_reps)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                workout_set.execution_date,
+                workout_set.location,
+                workout_set.duration_seconds,
+                total_reps,
+                correct_reps,
+                faulty_reps,
+            ),
+        )
+        set_id = cursor.lastrowid
+
+        for r in workout_set.repetitions:
+            cursor.execute(
+                """
+                INSERT INTO repetitions (
+                    set_id, execution_speed_seconds, quality_status, 
+                    error_too_shallow, error_too_far_from_chair, error_lacks_tempo_control
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    set_id,
+                    r.execution_speed_seconds,
+                    r.quality_status,
+                    1 if getattr(r, "error_too_shallow", False) else 0,
+                    1 if getattr(r, "error_too_far_from_chair", False) else 0,
+                    1 if getattr(r, "error_lacks_tempo_control", False) else 0,
+                ),
+            )
+        self.conn.commit()
+        print(f"-> Saved set ID {set_id} into current path database connection target.")
+
+    def _get_statistics_from_db(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT COUNT(*), SUM(total_reps), SUM(correct_reps) FROM sets")
+        return cursor.fetchone()
+
+    def _fetch_all_sets_and_reps(self) -> list:
+        """Retrieves and packages multi-perspective data sets for the history views."""
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "SELECT id, execution_date, location, duration_seconds, total_reps, correct_reps, faulty_reps FROM sets ORDER BY id DESC"
+        )
+        sets_rows = cursor.fetchall()
+
+        all_data = []
+        for s_row in sets_rows:
+            set_id = s_row[0]
+
+            cursor.execute(
+                """
+                SELECT execution_speed_seconds, quality_status, error_too_shallow, error_too_far_from_chair, error_lacks_tempo_control 
+                FROM repetitions WHERE set_id = ?
+                """,
+                (set_id,),
+            )
+            reps_rows = cursor.fetchall()
+
+            all_data.append(
+                {
+                    "metadata": {
+                        "date": s_row[1],
+                        "location": s_row[2],
+                        "duration": s_row[3],
+                        "total": s_row[4],
+                        "correct": s_row[5],
+                        "faulty": s_row[6],
+                    },
+                    "repetitions": reps_rows,
+                }
+            )
+        return all_data
+
+    # --- PUBLIC API ---
+    def request_set_save(self, workout_set):
+        self.task_queue.put(("SAVE_SET", workout_set))
+
+    def request_statistics(self, receiving_function):
+        self.task_queue.put(("GET_STATISTICS", None, receiving_function))
+
+    def request_all_data(self):
+        """Public method called by the user interface."""
+        self.task_queue.put(("FETCH_ALL_DATA", None))
+
+==> ./dataStorageModule/test/DataStorageModule_test.py <==
+import time
+from unittest.mock import Mock
+
+import pytest
+
+from src.dataStorageModule.DataStorageModule import *
+from src.include.set_data import *
+
+
+@pytest.fixture
+def db_service():
+    """
+    Fixture creating an instance of the database module in RAM (:memory:).
+    Starts the thread before the test and ensures it closes properly after the test.
+    """
+    # Using the special ':memory:' path so the DB lives only in RAM during the test
+    service = DatabaseModule(db_path=":memory:")
+    service.start()
+
+    yield service  # The test executes here
+
+    # Teardown after test: send a stop signal to the thread
+    service.task_queue.put(None)
+    service.join(timeout=2)
+
+
+def test_summarize_set_calculates_correct_stats():
+    """Unit test for the internal logic of the Set class (no database involved)."""
+    workout_set = Set()
+    workout_set.repetitions.append(Repetition(quality_status="CORRECT"))
+    workout_set.repetitions.append(
+        Repetition(quality_status="ERROR", error_too_shallow=True)
+    )
+    workout_set.repetitions.append(Repetition(quality_status="CORRECT"))
+
+    total, correct, faulty = workout_set.summarize_set()
+
+    assert total == 3
+    assert correct == 2
+    assert faulty == 1
+
+
+def test_save_and_get_statistics(db_service):
+    """Integration test: saving a set to the DB and verifying general statistics."""
+    # 1. Arrange (Prepare data)
+    workout_set = Set(location="Home", duration_seconds=15)
+    workout_set.repetitions.append(
+        Repetition(execution_speed_seconds=2.0, quality_status="CORRECT")
+    )
+    workout_set.repetitions.append(
+        Repetition(
+            execution_speed_seconds=2.5, quality_status="ERROR", error_too_shallow=True
+        )
+    )
+
+    # Mock / callback function to capture the result from the async DB thread
+    callback_mock = Mock()
+
+    # 2. Act (Execute operations)
+    db_service.request_set_save(workout_set)
+
+    # Wait until the queue processes the save operation before fetching stats
+    db_service.task_queue.join()
+
+    db_service.request_statistics(callback_mock)
+
+    # Wait again for the statistics query to be processed
+    db_service.task_queue.join()
+
+    # 3. Assert (Verify results)
+    # Check if the callback was called exactly once
+    callback_mock.assert_called_once()
+
+    # Extract the arguments with which the callback was invoked (result from DB)
+    stats_result = callback_mock.call_args[0][0]
+
+    # Expected: (total_sets=1, sum_of_reps=2, sum_of_correct=1)
+    assert stats_result == (1, 2, 1)
+
+
+def test_multiple_sets_saving(db_service):
+    """Test checks if adding subsequent sets correctly aggregates statistics."""
+    # Set 1: 1 correct repetition
+    s1 = Set()
+    s1.repetitions.append(Repetition(quality_status="CORRECT"))
+
+    # Set 2: 2 repetitions (1 correct, 1 error)
+    s2 = Set()
+    s2.repetitions.append(Repetition(quality_status="CORRECT"))
+    s2.repetitions.append(
+        Repetition(quality_status="ERROR", error_too_far_from_chair=True)
+    )
+
+    callback_mock = Mock()
+
+    # Save both sets
+    db_service.request_set_save(s1)
+    db_service.request_set_save(s2)
+    db_service.task_queue.join()
+
+    # Get statistics
+    db_service.request_statistics(callback_mock)
+    db_service.task_queue.join()
+
+    result = callback_mock.call_args[0][0]
+    # Expected: 2 sets, 3 total repetitions, 2 total correct repetitions
+    assert result == (2, 3, 2)
+
+==> ./voiceSynthesisModule/__init__.py <==
+
+==> ./voiceSynthesisModule/VoiceSynthesizer.py <==
+import asyncio
+import os
+import threading
+
+import edge_tts
+import pygame
+
+
+class VoiceSynthesizer:
+    def __init__(self):
+        self.voice = "pl-PL-MarekNeural"
+        self.cache_dir = "voice_cache"
+        os.makedirs(self.cache_dir, exist_ok=True)
+
+        try:
+            pygame.mixer.pre_init(44100, -16, 2, 512)
+            pygame.mixer.init()
+        except Exception as e:
+            print(f"[Audio Init Error] {e}")
+
+    def speak(self, text: str):
+        threading.Thread(
+            target=self._run_async_speech, args=(text,), daemon=True
+        ).start()
+
+    def _run_async_speech(self, text: str):
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self._generate_and_play(text))
+            loop.close()
+        except Exception as e:
+            print(f"[Async Exec Error] {e}")
+
+    async def _generate_and_play(self, text: str):
+        filename = f"{self.cache_dir}/msg_{abs(hash(text))}.mp3"
+
+        if not os.path.exists(filename) or os.path.getsize(filename) == 0:
+            try:
+                communicate = edge_tts.Communicate(text, self.voice)
+                await communicate.save(filename)
+            except Exception as e:
+                print(f"[Voice Error] {e}")
+                if os.path.exists(filename):
+                    os.remove(filename)
+                return
+
+        # Dodatkowa weryfikacja rozmiaru pliku przed próbą odtworzenia
+        if os.path.exists(filename) and os.path.getsize(filename) > 0:
+            try:
+                pygame.mixer.music.load(filename)
+                pygame.mixer.music.play()
+                while pygame.mixer.music.get_busy():
+                    await asyncio.sleep(0.1)
+                pygame.mixer.music.unload()
+            except Exception as e:
+                print(f"[Audio Playback Error] {e}")
+
+==> ./include/set_data.py <==
+from datetime import datetime
+
+
+class Repetition:
+
+    def __init__(self, speed, quality, shallow=False, far=False, tempo=False):
+
+        self.execution_speed_seconds = float(speed)
+
+        self.quality_status = quality  # "Correct" lub "Faulty"
+
+        self.error_too_shallow = bool(shallow)
+
+        self.error_too_far_from_chair = bool(far)
+
+        self.error_lacks_tempo_control = bool(tempo)
+
+
+class WorkoutSet:
+
+    def __init__(self, date=None, location="Dom", duration=0):
+
+        self.execution_date = (
+            date if date else datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        )
+
+        self.location = location
+
+        self.duration_seconds = int(duration)
+
+        self.repetitions = []
+
+    def add_repetition(self, rep: Repetition):
+
+        self.repetitions.append(rep)
+
+    def summarize_set(self):
+
+        total = len(self.repetitions)
+
+        correct = sum(1 for r in self.repetitions if r.quality_status == "Correct")
+
+        faulty = total - correct
+
+        return total, correct, faulty
+
+==> ./videoAnalysisModule/front_processor.py <==
+import cv2 as cv
+import math
+import mediapipe as mp
+
+
+class FrontProcessor:
+    def __init__(self):
+        # Repetition variables
+        self.rep_count = 0
+        self.stage = "up"
+
+        # Thresholds
+        self.DOWN_THRESHOLD = 0.04
+        self.UP_THRESHOLD = 0.10
+        self.HAND_MIN = 0.18
+        self.HAND_MAX = 0.42
+
+        # Feedback dla zewnętrznego systemu
+        self.hand_feedback = "OK"
+
+    def _distance(self, a, b):
+        return math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
+
+    def process(self, frame, landmarks, mp_pose, mp_draw):
+        """Przetwarza klatkę, modyfikuje stan wewnętrzny i rysuje po klatce."""
+        # Pobranie odpowiednich punktów (z zachowaniem Twojej logiki)
+        right_shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER]
+        right_elbow = landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW]
+        right_wrist = landmarks[mp_pose.PoseLandmark.RIGHT_WRIST]
+        left_wrist = landmarks[mp_pose.PoseLandmark.LEFT_WRIST]
+
+        # Main height parameter
+        shoulder_elbow_diff = abs(right_shoulder.y - right_elbow.y)
+
+        # Wrist should stay below elbow
+        proper_arm = right_wrist.y > right_elbow.y
+
+        # Hand distance validation
+        hand_distance = self._distance(left_wrist, right_wrist)
+        hands_ok = self.HAND_MIN <= hand_distance <= self.HAND_MAX
+
+        # Draw skeleton
+        # Uwaga: rysujemy bezpośrednio na przekazanej klatce (będzie widoczna w get_agr_frame)
+        # result_pose_landmarks musimy przekazać jako obiekt z MediaPipe (zrobimy to w głównym analyzerze)
+
+        # Repetition logic
+        if hands_ok and proper_arm:
+            # Bottom position
+            if shoulder_elbow_diff < self.DOWN_THRESHOLD:
+                self.stage = "down"
+            # Return to top
+            elif shoulder_elbow_diff > self.UP_THRESHOLD and self.stage == "down":
+                self.rep_count += 1
+                self.stage = "up"
+
+        # Hand placement feedback
+        if hand_distance < self.HAND_MIN:
+            self.hand_feedback = "Too narrow"
+        elif hand_distance > self.HAND_MAX:
+            self.hand_feedback = "Too wide"
+        else:
+            self.hand_feedback = "OK"
+
+        # --- PANEL REZULTATÓW (OpenCV) ---
+        cv.rectangle(frame, (0, 0), (520, 220), (0, 0, 0), -1)
+
+        cv.putText(
+            frame,
+            f"Reps: {self.rep_count}",
+            (20, 40),
+            cv.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 0),
+            2,
+        )
+        cv.putText(
+            frame,
+            f"Stage: {self.stage}",
+            (20, 80),
+            cv.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 255),
+            2,
+        )
+        cv.putText(
+            frame,
+            f"Shoulder-Elbow diff: {shoulder_elbow_diff:.3f}",
+            (20, 120),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.8,
+            (255, 255, 255),
+            2,
+        )
+        cv.putText(
+            frame,
+            f"Hand distance: {hand_distance:.3f}",
+            (20, 160),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.8,
+            (255, 255, 255),
+            2,
+        )
+
+        feedback_color = (0, 255, 0) if self.hand_feedback == "OK" else (0, 0, 255)
+        cv.putText(
+            frame,
+            f"Hands: {self.hand_feedback}",
+            (20, 200),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.9,
+            feedback_color,
+            2,
+        )
+
+        return frame
+
+==> ./videoAnalysisModule/side_processor.py <==
+import cv2 as cv
+import math
+import mediapipe as mp
+
+
+class SideProcessor:
+    def __init__(self):
+        # Repetition variables
+        self.rep_count = 0
+        self.stage = "up"
+
+        # Thresholds
+        self.BOTTOM_THRESHOLD = 105
+        self.TOP_THRESHOLD = 145
+        self.LEG_MIN_ANGLE = 155
+        self.BODY_MIN_ANGLE = 75
+        self.BODY_MAX_ANGLE = 105
+
+        # Stan walidacji sylwetki
+        self.leg_correct = True
+        self.body_correct = True
+
+    def _calculate_angle(self, a, b, c):
+        ax, ay = a.x, a.y
+        bx, by = b.x, b.y
+        cx, cy = c.x, c.y
+
+        angle = math.degrees(
+            math.atan2(cy - by, cx - bx) - math.atan2(ay - by, ax - bx)
+        )
+        angle = abs(angle)
+        if angle > 180:
+            angle = 360 - angle
+        return angle
+
+    def process(self, frame, landmarks, mp_pose, mp_draw):
+        """Przetwarza klatkę boczna, sprawdza błędy, nanosi grafikę OpenCV."""
+        # Upper body landmarks
+        shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER]
+        elbow = landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW]
+        wrist = landmarks[mp_pose.PoseLandmark.RIGHT_WRIST]
+
+        # Lower body landmarks
+        hip = landmarks[mp_pose.PoseLandmark.RIGHT_HIP]
+        knee = landmarks[mp_pose.PoseLandmark.RIGHT_KNEE]
+        ankle = landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE]
+
+        # Angle calculations
+        elbow_angle = self._calculate_angle(shoulder, elbow, wrist)
+        leg_angle = self._calculate_angle(hip, knee, ankle)
+        body_angle = self._calculate_angle(shoulder, hip, knee)
+
+        # Rep counting
+        if elbow_angle < self.BOTTOM_THRESHOLD:
+            self.stage = "down"
+        elif elbow_angle > self.TOP_THRESHOLD and self.stage == "down":
+            self.rep_count += 1
+            self.stage = "up"
+
+        # Form validation
+        self.leg_correct = leg_angle > self.LEG_MIN_ANGLE
+        self.body_correct = self.BODY_MIN_ANGLE <= body_angle <= self.BODY_MAX_ANGLE
+
+        # --- PANEL INFORMACYJNY (OpenCV) ---
+        cv.rectangle(frame, (0, 0), (260, 90), (0, 0, 0), -1)
+        cv.putText(
+            frame,
+            f"Reps: {self.rep_count}",
+            (15, 35),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.9,
+            (0, 255, 0),
+            2,
+        )
+        cv.putText(
+            frame,
+            f"Stage: {self.stage}",
+            (15, 75),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.8,
+            (0, 255, 255),
+            2,
+        )
+
+        # Warning messages
+        warning_y = 130
+        if not self.leg_correct:
+            cv.putText(
+                frame,
+                "Legs should be more straight",
+                (15, warning_y),
+                cv.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (0, 0, 255),
+                2,
+            )
+            warning_y += 40
+
+        if not self.body_correct and self.stage == "down":
+            cv.putText(
+                frame,
+                "There should be ~90 deg. angle between torso and legs",
+                (15, warning_y),
+                cv.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (0, 0, 255),
+                2,
+            )
+
+        # Debug info
+        cv.putText(
+            frame,
+            f"E:{int(elbow_angle)}  L:{int(leg_angle)}  B:{int(body_angle)}",
+            (15, frame.shape[0] - 20),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (255, 255, 255),
+            1,
+        )
+
+        return frame
+
+==> ./videoAnalysisModule/VideoAnalyzer.py <==
+import queue
+
+import cv2 as cv
+import mediapipe as mp
+
+from src.include.set_data import Repetition, WorkoutSet
+from src.videoAnalysisModule.front_processor import FrontProcessor
+from src.videoAnalysisModule.side_processor import SideProcessor
+
+
+class VideoAnalyzer:
+    def __init__(self):
+        self.mp_pose = mp.solutions.pose
+        self.mp_draw = mp.solutions.drawing_utils
+
+        self.pose_detector_front = self.mp_pose.Pose(
+            min_detection_confidence=0.5, min_tracking_confidence=0.5
+        )
+        self.pose_detector_side = self.mp_pose.Pose(
+            min_detection_confidence=0.5, min_tracking_confidence=0.5
+        )
+
+        self.front_queue = queue.Queue()
+        self.side_queue = queue.Queue()
+
+        # Stan wewnętrzny (Pamięć podręczna cache)
+        self.cached_workout_set = None
+        self.cached_bounds = None  # Krotka: (f_start, f_end, s_start, s_end)
+        self.cached_paths = None  # Krotka: (front_path, side_path)
+
+        self.reset()
+
+    def reset(self):
+        self.front_proc = FrontProcessor()
+        self.side_proc = SideProcessor()
+        self.last_front_frame = None
+        self.last_side_frame = None
+        self.total_reps = 0
+
+        self.mismatch_detected = False
+        self.stage_desync_counter = 0
+        self.DESYNC_TOLERANCE_FRAMES = 90
+
+    def queue_frames(self, front_frame=None, side_frame=None):
+        if front_frame is not None:
+            self.front_queue.put(front_frame)
+        if side_frame is not None:
+            self.side_queue.put(side_frame)
+
+    def process_next_synced_step(self):
+        front_frame = self.front_queue.get() if not self.front_queue.empty() else None
+        side_frame = self.side_queue.get() if not self.side_queue.empty() else None
+
+        if front_frame is not None:
+            self._analyze_perspective(front_frame, "front")
+        if side_frame is not None:
+            self._analyze_perspective(side_frame, "side")
+
+        if front_frame is not None and side_frame is not None:
+            if self.front_proc.stage != self.side_proc.stage:
+                self.stage_desync_counter += 1
+                if self.stage_desync_counter > self.DESYNC_TOLERANCE_FRAMES:
+                    self.mismatch_detected = True
+            else:
+                self.stage_desync_counter = 0
+
+        self.total_reps = max(self.front_proc.rep_count, self.side_proc.rep_count)
+        return front_frame is not None or side_frame is not None
+
+    def _analyze_perspective(self, frame, perspective):
+        rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+
+        if perspective == "front":
+            self.last_front_frame = frame.copy()
+            result = self.pose_detector_front.process(rgb)
+            if result.pose_landmarks:
+                self.mp_draw.draw_landmarks(
+                    self.last_front_frame,
+                    result.pose_landmarks,
+                    self.mp_pose.POSE_CONNECTIONS,
+                )
+                self.last_front_frame = self.front_proc.process(
+                    self.last_front_frame,
+                    result.pose_landmarks.landmark,
+                    self.mp_pose,
+                    self.mp_draw,
+                )
+        elif perspective == "side":
+            self.last_side_frame = frame.copy()
+            result = self.pose_detector_side.process(rgb)
+            if result.pose_landmarks:
+                self.mp_draw.draw_landmarks(
+                    self.last_side_frame,
+                    result.pose_landmarks,
+                    self.mp_pose.POSE_CONNECTIONS,
+                )
+                self.last_side_frame = self.side_proc.process(
+                    self.last_side_frame,
+                    result.pose_landmarks.landmark,
+                    self.mp_pose,
+                    self.mp_draw,
+                )
+
+    def get_agr_frame(self, perspective="front"):
+        return self.last_front_frame if perspective == "front" else self.last_side_frame
+
+    def get_current_series_info(self):
+        return {
+            "total_reps": self.total_reps,
+            "front_reps": self.front_proc.rep_count,
+            "side_reps": self.side_proc.rep_count,
+            "front_stage": self.front_proc.stage,
+            "side_stage": self.side_proc.stage,
+            "hand_feedback": self.front_proc.hand_feedback,
+            "leg_correct": self.side_proc.leg_correct,
+            "body_correct": self.side_proc.body_correct,
+            "mismatch_detected": self.mismatch_detected,
+        }
+
+    # =========================================================================
+    # KLUCZOWA ZMIANA: ZAKLESZCZENIE CAŁEJ LOGIKI PROCESOWANIA I CACHE W JEDNYM MIEJSCU
+    # =========================================================================
+
+    def _is_cache_valid(self, front_path, side_path, bounds_tuple) -> bool:
+        return (
+            self.cached_workout_set is not None
+            and self.cached_paths == (front_path, side_path)
+            and self.cached_bounds == bounds_tuple
+        )
+
+    def run_fast_background_analysis(
+        self, front_path, side_path, f_start=0, f_end=0, s_start=0, s_end=0
+    ) -> dict:
+        """Ekspresowo analizuje klatki wideo bezpośrednio w silniku bez renderowania GUI."""
+        cap_front = cv.VideoCapture(front_path) if front_path else None
+        cap_side = cv.VideoCapture(side_path) if side_path else None
+
+        if cap_front:
+            cap_front.set(cv.CAP_PROP_POS_FRAMES, f_start)
+        if cap_side:
+            cap_side.set(cv.CAP_PROP_POS_FRAMES, s_start)
+
+        self.reset()
+
+        while True:
+            curr_f = int(cap_front.get(cv.CAP_PROP_POS_FRAMES)) if cap_front else 0
+            curr_s = int(cap_side.get(cv.CAP_PROP_POS_FRAMES)) if cap_side else 0
+
+            has_front, frame_front = (
+                cap_front.read() if (cap_front and curr_f <= f_end) else (False, None)
+            )
+            has_side, frame_side = (
+                cap_side.read() if (cap_side and curr_s <= s_end) else (False, None)
+            )
+
+            if not has_front and not has_side:
+                break
+
+            self.queue_frames(frame_front, frame_side)
+            self.process_next_synced_step()
+
+        if cap_front:
+            cap_front.release()
+        if cap_side:
+            cap_side.release()
+
+        bounds_tuple = (f_start, f_end, s_start, s_end)
+        workout_set = self.compile_and_cache_workout_set(
+            front_path, side_path, bounds_tuple
+        )
+
+        return {"workout_set": workout_set, "mismatch": self.mismatch_detected}
+
+    def get_or_analyze_workout_set(
+        self,
+        front_path,
+        side_path,
+        f_start=0,
+        f_end=0,
+        s_start=0,
+        s_end=0,
+        force_reanalyze=False,
+    ) -> dict:
+        """Inteligentny getter: zwraca zcache'owaną analizę lub automatycznie uruchamia przetwarzanie."""
+        bounds_tuple = (f_start, f_end, s_start, s_end)
+
+        if not force_reanalyze and self._is_cache_valid(
+            front_path, side_path, bounds_tuple
+        ):
+            print(
+                "[VideoAnalyzer Engine] Pobrano zcache'owany WorkoutSet bez dotykania plików wideo."
+            )
+            return {
+                "workout_set": self.cached_workout_set,
+                "mismatch": self.mismatch_detected,
+            }
+
+        print(
+            "[VideoAnalyzer Engine] Brak cache lub wymuszona reanaliza. Uruchamiam procesor plików..."
+        )
+        return self.run_fast_background_analysis(
+            front_path, side_path, f_start, f_end, s_start, s_end
+        )
+
+    def compile_and_cache_workout_set(
+        self, front_path, side_path, bounds_tuple
+    ) -> WorkoutSet:
+        """Kompiluje surowe informacje o błędach z procesorów do obiektów domenowych."""
+        info = self.get_current_series_info()
+        workout_set = WorkoutSet(location="None", duration=info["total_reps"] * 2)
+
+        for _ in range(info["total_reps"]):
+            is_shallow = not info["leg_correct"]
+            is_far = info["hand_feedback"] != "OK"
+            is_tempo = not info["body_correct"]
+            quality = "Faulty" if (is_shallow or is_far or is_tempo) else "Correct"
+
+            rep_obj = Repetition(
+                speed=2.2,
+                quality=quality,
+                shallow=is_shallow,
+                far=is_far,
+                tempo=is_tempo,
+            )
+            rep_obj.error_too_shallow = is_shallow
+            rep_obj.error_too_far_from_chair = is_far
+            rep_obj.error_lacks_tempo_control = is_tempo
+            workout_set.add_repetition(rep_obj)
+
+        self.cached_workout_set = workout_set
+        self.cached_paths = (front_path, side_path)
+        self.cached_bounds = bounds_tuple
+
+        return workout_set
