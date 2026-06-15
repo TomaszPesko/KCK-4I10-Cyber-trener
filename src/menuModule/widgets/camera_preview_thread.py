@@ -1,4 +1,5 @@
 import time
+
 import cv2 as cv
 from PySide6.QtCore import QThread, Signal
 
@@ -21,6 +22,9 @@ class CameraPreviewThread(QThread):
         while self._is_running:
             has_f, frame_front = cap_front.read() if cap_front else (False, None)
             has_s, frame_side = cap_side.read() if cap_side else (False, None)
+
+            if not self._is_running:
+                break
 
             display_front = frame_front.copy() if has_f else None
             display_side = frame_side.copy() if has_s else None

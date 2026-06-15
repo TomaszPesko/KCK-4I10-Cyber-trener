@@ -136,17 +136,11 @@ class CyberTrener(AppWindow):
         zleca asynchroniczny odczyt, OMIJAJĄC stare okno dialogowe.
         """
         try:
-            # Ustawiamy plik bazy danych
             self.db_module.db_path = db_path
 
-            # Jeśli wątek bazy jeszcze nie żyje, odpalamy go
             if not self.db_module.is_alive():
                 self.db_module.start()
 
-            # !!! KLUCZOWA POPRAWKA !!!
-            # Zamiast odpalać samą funkcję self._load_training_data_action(),
-            # która ma w środku zaszyte okno dialogowe, bezpośrednio wysyłamy
-            # żądanie do publicznego API Twojego DatabaseModule:
             self.db_module.request_all_data()
 
             print(f"[Database] Zażądano asynchronicznego odczytu z bazy: {db_path}")
@@ -157,8 +151,6 @@ class CyberTrener(AppWindow):
             )
 
     def _handle_navigation(self, screen_name: str):
-        """Centralny punkt zarządzania przełączaniem ekranów."""
-        # Jeżeli opuszczamy ekran tworzenia serii, zmuszamy go do ugaszenia kamer
         if screen_name != "create_set":
             if hasattr(self, "screen_create"):
                 if (
@@ -179,8 +171,7 @@ class CyberTrener(AppWindow):
             self.switch_to_screen(screen_name)
         elif screen_name == "create_set":
             self.switch_to_screen(screen_name)
-            # Wywołujemy podgląd dopiero w momencie faktycznego wejścia na ekran
-            self.screen_create._restart_pasywny_podglad()
+            self.screen_create._restart_passive_preview()
         else:
             self.switch_to_screen(screen_name)
 
