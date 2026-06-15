@@ -1,11 +1,13 @@
 import sys
+import cv2
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout
 
 # Importujemy stworzoną wcześniej bibliotekę (zgodnie z Twoją nazwą: menu.py)
-from menu import AppWindow, Screen
+from src.menuModule.menu import AppWindow, Screen
 from video_manager import VideoManager
 
 
@@ -22,6 +24,8 @@ class CyberTrener(AppWindow):
         self.camera_count = 1
         self.selected_perspective = "Przód"
         self.cameras_widget = None
+        self.timer = QTimer()
+        self.timer.timeout.connect(self._update_frames)
         # Inicjalizacja struktury menu aplikacji
         self._inicjalizuj_ekrany()
 
@@ -170,7 +174,7 @@ class CyberTrener(AppWindow):
 
             if connected:
                 print("[Kamera] Kamera została podłączona")
-                self.video_manager.show_preview()
+                self.timer.start(30)
             else:
                 print("[Kamera] Nie udało się połączyć z kamerą")
 
@@ -184,7 +188,7 @@ class CyberTrener(AppWindow):
             if connected:
                 print("[Kamera] Kamera przednia została podłączona")
                 print("[Kamera] Kamera boczna została podłączona")
-                self.video_manager.show_dual_preview()
+                self.timer.start(30)
             else:
                 print("[Kamera] Nie udało się uruchomić dwóch kamer")
 
@@ -308,6 +312,68 @@ class CyberTrener(AppWindow):
         main_layout.addLayout(cameras_layout)
 
         return widget
+
+    def _update_frames(self):
+
+        if self.video_manager.camera_1:
+
+            ret, frame = self.video_manager.camera_1.read()
+
+            if ret:
+                frame = cv2.cvtColor(
+                    frame,
+                    cv2.COLOR_BGR2RGB
+                )
+
+                h, w, ch = frame.shape
+
+                image = QImage(
+                    frame.data,
+                    w,
+                    h,
+                    ch * w,
+                    QImage.Format_RGB888
+                )
+
+                pixmap = QPixmap.fromImage(image)
+
+                self.front_camera_label.setPixmap(
+                    pixmap.scaled(
+                        self.front_camera_label.size(),
+                        Qt.KeepAspectRatioByExpanding,
+                        Qt.SmoothTransformation
+                    )
+                )
+
+        if self.camera_count == 2 and self.video_manager.camera_2:
+
+            ret, frame = self.video_manager.camera_2.read()
+
+            if ret:
+                frame = cv2.cvtColor(
+                    frame,
+                    cv2.COLOR_BGR2RGB
+                )
+
+                h, w, ch = frame.shape
+
+                image = QImage(
+                    frame.data,
+                    w,
+                    h,
+                    ch * w,
+                    QImage.Format_RGB888
+                )
+
+                pixmap = QPixmap.fromImage(image)
+
+                self.side_camera_label.setPixmap(
+                    pixmap.scaled(
+                        self.side_camera_label.size(),
+                        Qt.IgnoreAspectRatio,
+                        Qt.SmoothTransformation
+                    )
+                )
 
 
 # ===== URUCHOMIENIE APLIKACJI =====
