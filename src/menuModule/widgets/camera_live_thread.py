@@ -12,6 +12,18 @@ class CameraLiveThread(QThread):
     frame_processed = Signal(object, object)
     status_msg_updated = Signal(str)
 
+    # --- STAŁE KONFIGURACYJNE ---
+    REQUIRED_FRAMES_HOLD = 10
+    SYNC_TIMEOUT_SECONDS = 5.0
+    PREP_TIME_SECONDS = 3.0
+    VOICE_COOLDOWN_SECONDS = 5.0
+
+    # --- STANY ---
+    STATE_PREPARATION = "PREPARATION"
+    STATE_VERIFY_SILHOUETTE = "VERIFY_SILHOUETTE"
+    STATE_SYNCHRONIZATION = "SYNCHRONIZATION"
+    STATE_WORKOUT_ACTIVE = "WORKOUT_ACTIVE"
+
     def __init__(
         self,
         shared_analyzer: VideoAnalyzer,
@@ -29,36 +41,33 @@ class CameraLiveThread(QThread):
         self._is_running = True
         self.voice = VoiceSynthesizer()
 
-        self.STATE_PREPARATION = "PREPARATION"
-        self.STATE_VERIFY_SILHOUETTE = "VERIFY_SILHOUETTE"
-        self.STATE_SYNCHRONIZATION = "SYNCHRONIZATION"
-        self.STATE_WORKOUT_ACTIVE = "WORKOUT_ACTIVE"
+        self._reset_internal_variables()
+
+    def _reset_internal_variables(self):
+        """Resetuje wszystkie zmienne i liczniki używane w poszczególnych fazach."""
         self.current_state = self.STATE_PREPARATION
+        self.state_start_time = time.time()
+        self.first_trigger_time = None
+
+        self.spoken_flags = {"prep": False, "sync_prompt": False, "start": False}
+        self.last_voice_time = 0
+        self.last_processed_rep_count = 0
+
+        self.front_triggered = not self.has_front
+        self.side_triggered = not self.has_side
+
+        self.front_raised_frames = 0
+        self.side_raised_frames = 0
+
+        self.delay_buffer_f = []
+        self.delay_buffer_s = []
 
     def run(self):
         cap_front = cv.VideoCapture(self.front_index) if self.has_front else None
         cap_side = cv.VideoCapture(self.side_index) if self.has_side else None
 
         self.analyzer.reset()
-        state_start_time = time.time()
-
-        spoken_flags = {"prep": False, "sync_prompt": False, "start": False}
-        last_voice_time = 0
-        last_processed_rep_count = 0
-
-        front_triggered = not self.has_front
-        side_triggered = not self.has_side
-
-        front_raised_frames = 0
-        side_raised_frames = 0
-
-        required_frames_hold = 15
-        sync_timeout_seconds = 5.0
-        first_trigger_time = None
-
-        # Bufory opóźniające (FIFO)
-        delay_buffer_f = []
-        delay_buffer_s = []
+        self._reset_internal_variables()
 
         while self._is_running:
             has_f, frame_front = cap_front.read() if cap_front else (False, None)
@@ -68,236 +77,28 @@ class CameraLiveThread(QThread):
             display_side = frame_side.copy() if has_s else None
 
             if self.current_state == self.STATE_PREPARATION:
-                elapsed = time.time() - state_start_time
-                self.status_msg_updated.emit(
-                    f"Przygotuj się! Podejdź do krzesła... {max(0, int(4 - elapsed))}s"
+                display_front, display_side = self._handle_preparation(
+                    display_front, display_side
                 )
-                if not spoken_flags["prep"]:
-                    self.voice.speak(
-                        "Cześć! Przygotuj się do ćwiczenia. Podejdź do krzesła, trening rozpocznie się za trzy sekundy."
-                    )
-                    spoken_flags["prep"] = True
-                if elapsed >= 3.0:
-                    self.current_state = self.STATE_VERIFY_SILHOUETTE
 
             elif self.current_state == self.STATE_VERIFY_SILHOUETTE:
-                self.analyzer.queue_frames(frame_front, frame_side)
-                self.analyzer.process_next_synced_step()
-                info = self.analyzer.get_current_series_info()
-
-                front_lost = (
-                    (info["front_stage"] == "unknown") if self.has_front else False
+                display_front, display_side = self._handle_verification(
+                    frame_front, frame_side, display_front, display_side
                 )
-                side_lost = (
-                    (info["side_stage"] == "unknown") if self.has_side else False
-                )
-
-                now = time.time()
-                if front_lost and side_lost:
-                    self.status_msg_updated.emit(
-                        "⚠️ BŁĄD: Nie wykryto sylwetki! Stań przed kamerami."
-                    )
-                    if now - last_voice_time > 5.0:
-                        self.voice.speak(
-                            "Nie widzę cię w ogóle. Proszę, stań przed krzesłem."
-                        )
-                        last_voice_time = now
-                elif front_lost or side_lost:
-                    bad_cam = "PRZEDNIEJ" if front_lost else "BOCZNEJ"
-                    self.status_msg_updated.emit(
-                        f"⚠️ BŁĄD: Brak sylwetki w kamerze {bad_cam}! Odsuń ją."
-                    )
-                    if now - last_voice_time > 5.0:
-                        self.voice.speak(
-                            f"W kamerze {bad_cam.lower()} nie widać twojej pełnej sylwetki."
-                        )
-                        last_voice_time = now
-                else:
-                    if self.has_front and self.has_side:
-                        self.current_state = self.STATE_SYNCHRONIZATION
-                    else:
-                        self.current_state = self.STATE_WORKOUT_ACTIVE
 
             elif self.current_state == self.STATE_SYNCHRONIZATION:
-                self.status_msg_updated.emit(
-                    "Synchronizacja: Przytrzymaj uniesioną dłoń nad głową..."
+                display_front, display_side = self._handle_synchronization(
+                    frame_front,
+                    frame_side,
+                    display_front,
+                    display_side,
+                    cap_front,
+                    cap_side,
                 )
-                if not spoken_flags["sync_prompt"]:
-                    self.voice.speak(
-                        "Podnieś rękę wysoko nad głowę i przytrzymaj ją nieruchomo."
-                    )
-                    spoken_flags["sync_prompt"] = True
-
-                # Analiza przodu za pomocą BEZSTANOWEJ funkcji
-                if has_f:
-                    if not front_triggered:
-                        if self.analyzer.is_sync_gesture_detected(
-                            frame_front, display_front, "front"
-                        ):
-                            front_raised_frames += 1
-                            if front_raised_frames >= required_frames_hold:
-                                front_triggered = True
-                                self.voice.speak("Przód zsynchronizowany.")
-                                if first_trigger_time is None:
-                                    first_trigger_time = time.time()
-                        else:
-                            front_raised_frames = max(0, front_raised_frames - 1)
-
-                        if front_raised_frames > 0 and display_front is not None:
-                            cv.putText(
-                                display_front,
-                                f"Ladowanie... {front_raised_frames}/{required_frames_hold}",
-                                (30, 50),
-                                cv.FONT_HERSHEY_SIMPLEX,
-                                1.0,
-                                (0, 165, 255),
-                                3,
-                                cv.LINE_AA,
-                            )
-
-                    if front_triggered and not side_triggered:
-                        delay_buffer_f.append(frame_front)
-                        if display_front is not None:
-                            cv.putText(
-                                display_front,
-                                "SYNCHRONIZACJA OK",
-                                (30, 50),
-                                cv.FONT_HERSHEY_SIMPLEX,
-                                1.0,
-                                (0, 255, 0),
-                                3,
-                                cv.LINE_AA,
-                            )
-
-                # Analiza boku za pomocą BEZSTANOWEJ funkcji
-                if has_s:
-                    if not side_triggered:
-                        if self.analyzer.is_sync_gesture_detected(
-                            frame_side, display_side, "side"
-                        ):
-                            side_raised_frames += 1
-                            if side_raised_frames >= required_frames_hold:
-                                side_triggered = True
-                                self.voice.speak("Bok zsynchronizowany.")
-                                if first_trigger_time is None:
-                                    first_trigger_time = time.time()
-                        else:
-                            side_raised_frames = max(0, side_raised_frames - 1)
-
-                        if side_raised_frames > 0 and display_side is not None:
-                            cv.putText(
-                                display_side,
-                                f"Ladowanie... {side_raised_frames}/{required_frames_hold}",
-                                (30, 50),
-                                cv.FONT_HERSHEY_SIMPLEX,
-                                1.0,
-                                (0, 165, 255),
-                                3,
-                                cv.LINE_AA,
-                            )
-
-                    if side_triggered and not front_triggered:
-                        delay_buffer_s.append(frame_side)
-                        if display_side is not None:
-                            cv.putText(
-                                display_side,
-                                "SYNCHRONIZACJA OK",
-                                (30, 50),
-                                cv.FONT_HERSHEY_SIMPLEX,
-                                1.0,
-                                (0, 255, 0),
-                                3,
-                                cv.LINE_AA,
-                            )
-
-                # Rygorystyczny TIMEOUT 5 sekund
-                if first_trigger_time is not None and not (
-                    front_triggered and side_triggered
-                ):
-                    if (time.time() - first_trigger_time) > sync_timeout_seconds:
-                        self.status_msg_updated.emit(
-                            "⚠️ BŁĄD: Przekroczono czas synchronizacji. Trening przerwany!"
-                        )
-                        self.voice.speak(
-                            "Czas minął. Przerywam trening z powodu braku synchronizacji drugiej kamery."
-                        )
-                        self.stop()
-                        return
-
-                if front_triggered and side_triggered:
-                    self.current_state = self.STATE_WORKOUT_ACTIVE
 
             elif self.current_state == self.STATE_WORKOUT_ACTIVE:
-                if not spoken_flags["start"]:
-                    self.voice.speak(
-                        "Trening zsynchronizowany. Możesz rozpocząć serię dipów."
-                    )
-                    spoken_flags["start"] = True
-
-                # Wyrównywanie opóźnienia z użyciem FIFO
-                f_sync = frame_front
-                s_sync = frame_side
-
-                if self.has_front:
-                    if delay_buffer_f:
-                        delay_buffer_f.append(frame_front)
-                        f_sync = delay_buffer_f.pop(0)
-                    else:
-                        f_sync = frame_front
-
-                if self.has_side:
-                    if delay_buffer_s:
-                        delay_buffer_s.append(frame_side)
-                        s_sync = delay_buffer_s.pop(0)
-                    else:
-                        s_sync = frame_side
-
-                # Karmimy analizator zsynchronizowanymi klatkami
-                self.analyzer.queue_frames(f_sync, s_sync)
-                self.analyzer.process_next_synced_step()
-
-                info = self.analyzer.get_current_series_info()
-
-                # Twarde odcięcie w przypadku desynchronizacji analizatora
-                if info.get("mismatch_detected", False):
-                    self.status_msg_updated.emit(
-                        "⚠️ BŁĄD: Klatki rozsynchronizowały się! (Desync)"
-                    )
-                    self.voice.speak(
-                        "Trening przerwany ze względu na rozsynchronizowanie perspektyw."
-                    )
-                    self.stop()
-                    return
-
-                self.status_msg_updated.emit(
-                    f"Trening aktywny! Liczba powtórzeń: {info['total_reps']}"
-                )
-
-                if info["total_reps"] > last_processed_rep_count:
-                    last_processed_rep_count = info["total_reps"]
-                    errors_pool = []
-                    if not info["leg_correct"]:
-                        errors_pool.append(
-                            "Zejdź głębiej, robisz za płytkie powtórzenia."
-                        )
-                    if info["hand_feedback"] != "OK":
-                        errors_pool.append("Kontroluj rozstaw rąk na krześle.")
-                    if not info["body_correct"]:
-                        errors_pool.append(
-                            "Kontroluj tempo ćwiczenia, nie spiesz się tak."
-                        )
-
-                    if not errors_pool:
-                        self.voice.speak("Świetnie, idealne powtórzenie!")
-                    else:
-                        self.voice.speak(random.choice(errors_pool))
-
-                # Podgląd AR na żywo - odbierany prosto z przetworzonego ułamka sekundy wewnątrz analizatora
-                display_front = (
-                    self.analyzer.get_agr_frame("front") if self.has_front else None
-                )
-                display_side = (
-                    self.analyzer.get_agr_frame("side") if self.has_side else None
+                display_front, display_side = self._handle_workout(
+                    frame_front, frame_side, has_f, has_s
                 )
 
             self.frame_processed.emit(display_front, display_side)
@@ -311,3 +112,207 @@ class CameraLiveThread(QThread):
     def stop(self):
         self._is_running = False
         self.wait()
+
+    def _handle_preparation(self, display_front, display_side):
+        elapsed = time.time() - self.state_start_time
+        countdown = max(0, int((self.PREP_TIME_SECONDS + 1) - elapsed))
+        self.status_msg_updated.emit(
+            f"Przygotuj się! Podejdź do krzesła... {countdown}s"
+        )
+
+        if not self.spoken_flags["prep"]:
+            self.voice.speak(
+                "Cześć! Przygotuj się do ćwiczenia. Podejdź do krzesła, trening rozpocznie się za trzy sekundy."
+            )
+            self.spoken_flags["prep"] = True
+
+        if elapsed >= self.PREP_TIME_SECONDS:
+            self.current_state = self.STATE_VERIFY_SILHOUETTE
+
+        return display_front, display_side
+
+    def _handle_verification(
+        self, frame_front, frame_side, display_front, display_side
+    ):
+        self.analyzer.queue_frames(frame_front, frame_side)
+        self.analyzer.process_next_synced_step()
+        info = self.analyzer.get_current_series_info()
+
+        front_lost = (info["front_stage"] == "unknown") if self.has_front else False
+        side_lost = (info["side_stage"] == "unknown") if self.has_side else False
+
+        now = time.time()
+        if front_lost and side_lost:
+            self.status_msg_updated.emit(
+                "⚠️ BŁĄD: Nie wykryto sylwetki! Stań przed kamerami."
+            )
+            if now - self.last_voice_time > self.VOICE_COOLDOWN_SECONDS:
+                self.voice.speak("Nie widzę cię w ogóle. Proszę, stań przed krzesłem.")
+                self.last_voice_time = now
+        elif front_lost or side_lost:
+            bad_cam = "PRZEDNIEJ" if front_lost else "BOCZNEJ"
+            self.status_msg_updated.emit(
+                f"⚠️ BŁĄD: Brak sylwetki w kamerze {bad_cam}! Odsuń ją."
+            )
+            if now - self.last_voice_time > self.VOICE_COOLDOWN_SECONDS:
+                self.voice.speak(
+                    f"W kamerze {bad_cam.lower()} nie widać twojej pełnej sylwetki."
+                )
+                self.last_voice_time = now
+        else:
+            if self.has_front and self.has_side:
+                self.current_state = self.STATE_SYNCHRONIZATION
+            else:
+                self.current_state = self.STATE_WORKOUT_ACTIVE
+
+        return display_front, display_side
+
+    def _handle_synchronization(
+        self, frame_front, frame_side, display_front, display_side, cap_front, cap_side
+    ):
+        self.status_msg_updated.emit(
+            "Synchronizacja: Przytrzymaj uniesioną dłoń nad głową..."
+        )
+
+        if not self.spoken_flags["sync_prompt"]:
+            self.voice.speak(
+                "Podnieś rękę wysoko nad głowę i przytrzymaj ją nieruchomo."
+            )
+            self.spoken_flags["sync_prompt"] = True
+
+        if self.has_front:
+            if not self.front_triggered:
+                if self.analyzer.is_sync_gesture_detected(
+                    frame_front, display_front, "front"
+                ):
+                    self.front_raised_frames += 1
+                    if self.front_raised_frames >= self.REQUIRED_FRAMES_HOLD:
+                        self.front_triggered = True
+                        self.voice.speak("Przód zsynchronizowany.")
+                        if self.first_trigger_time is None:
+                            self.first_trigger_time = time.time()
+                else:
+                    self.front_raised_frames = max(0, self.front_raised_frames - 1)
+
+                if self.front_raised_frames > 0 and display_front is not None:
+                    self._draw_text(
+                        display_front,
+                        f"Ladowanie... {self.front_raised_frames}/{self.REQUIRED_FRAMES_HOLD}",
+                        (0, 165, 255),
+                    )
+
+            if self.front_triggered and not self.side_triggered:
+                self.delay_buffer_f.append(frame_front)
+                if display_front is not None:
+                    self._draw_text(display_front, "SYNCHRONIZACJA OK", (0, 255, 0))
+
+        if self.has_side:
+            if not self.side_triggered:
+                if self.analyzer.is_sync_gesture_detected(
+                    frame_side, display_side, "side"
+                ):
+                    self.side_raised_frames += 1
+                    if self.side_raised_frames >= self.REQUIRED_FRAMES_HOLD:
+                        self.side_triggered = True
+                        self.voice.speak("Bok zsynchronizowany.")
+                        if self.first_trigger_time is None:
+                            self.first_trigger_time = time.time()
+                else:
+                    self.side_raised_frames = max(0, self.side_raised_frames - 1)
+
+                if self.side_raised_frames > 0 and display_side is not None:
+                    self._draw_text(
+                        display_side,
+                        f"Ladowanie... {self.side_raised_frames}/{self.REQUIRED_FRAMES_HOLD}",
+                        (0, 165, 255),
+                    )
+
+            if self.side_triggered and not self.front_triggered:
+                self.delay_buffer_s.append(frame_side)
+                if display_side is not None:
+                    self._draw_text(display_side, "SYNCHRONIZACJA OK", (0, 255, 0))
+
+        if self.first_trigger_time is not None and not (
+            self.front_triggered and self.side_triggered
+        ):
+            if (time.time() - self.first_trigger_time) > self.SYNC_TIMEOUT_SECONDS:
+                self.status_msg_updated.emit(
+                    "⚠️ BŁĄD: Przekroczono czas synchronizacji. Trening przerwany!"
+                )
+                self.voice.speak(
+                    "Czas minął. Przerywam trening z powodu braku synchronizacji drugiej kamery."
+                )
+                self.stop()
+                return display_front, display_side
+
+        if self.front_triggered and self.side_triggered:
+            self.current_state = self.STATE_WORKOUT_ACTIVE
+
+        return display_front, display_side
+
+    def _handle_workout(self, frame_front, frame_side, has_f, has_s):
+        if not self.spoken_flags["start"]:
+            self.voice.speak("Trening zsynchronizowany. Możesz rozpocząć serię dipów.")
+            self.spoken_flags["start"] = True
+
+        f_sync = frame_front
+        s_sync = frame_side
+
+        if self.has_front:
+            if self.delay_buffer_f:
+                self.delay_buffer_f.append(frame_front)
+                f_sync = self.delay_buffer_f.pop(0)
+            else:
+                f_sync = frame_front
+
+        if self.has_side:
+            if self.delay_buffer_s:
+                self.delay_buffer_s.append(frame_side)
+                s_sync = self.delay_buffer_s.pop(0)
+            else:
+                s_sync = frame_side
+
+        self.analyzer.queue_frames(f_sync, s_sync)
+        self.analyzer.process_next_synced_step()
+        info = self.analyzer.get_current_series_info()
+
+        if info.get("mismatch_detected", False):
+            self.status_msg_updated.emit(
+                "⚠️ BŁĄD: Klatki rozsynchronizowały się! (Desync)"
+            )
+            self.voice.speak(
+                "Trening przerwany ze względu na rozsynchronizowanie perspektyw."
+            )
+            self.stop()
+            return None, None
+
+        self.status_msg_updated.emit(
+            f"Trening aktywny! Liczba powtórzeń: {info['total_reps']}"
+        )
+
+        if info["total_reps"] > self.last_processed_rep_count:
+            self.last_processed_rep_count = info["total_reps"]
+            errors_pool = []
+            if not info["leg_correct"]:
+                errors_pool.append("Zejdź głębiej, robisz za płytkie powtórzenia.")
+            if info["hand_feedback"] != "OK":
+                errors_pool.append("Kontroluj rozstaw rąk na krześle.")
+            if not info["body_correct"]:
+                errors_pool.append("Kontroluj tempo ćwiczenia, nie spiesz się tak.")
+
+            if not errors_pool:
+                self.voice.speak("Świetnie, idealne powtórzenie!")
+            else:
+                self.voice.speak(random.choice(errors_pool))
+
+        # Wyciąganie klatek podglądu AR prosto z VideoAnalyzera
+        display_front = self.analyzer.get_agr_frame("front") if has_f else None
+        display_side = self.analyzer.get_agr_frame("side") if has_s else None
+
+        return display_front, display_side
+
+    def _draw_text(self, frame, text, color):
+        """Pomocnicza funkcja do rysowania wyraźnego tekstu na klatce."""
+        cv.putText(
+            frame, text, (30, 50), cv.FONT_HERSHEY_SIMPLEX, 1.0, color, 3, cv.LINE_AA
+        )
