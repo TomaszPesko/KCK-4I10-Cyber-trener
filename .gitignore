@@ -1,6 +1,7 @@
 # Python cache and environments
 __pycache__/
 venv/
+voice_cache/
 
 # LaTeX and document compilation outputs
 *.aux

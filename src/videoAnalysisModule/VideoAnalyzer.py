@@ -23,10 +23,9 @@ class VideoAnalyzer:
         self.front_queue = queue.Queue()
         self.side_queue = queue.Queue()
 
-        # Stan wewnętrzny (Pamięć podręczna cache)
         self.cached_workout_set = None
-        self.cached_bounds = None  # Krotka: (f_start, f_end, s_start, s_end)
-        self.cached_paths = None  # Krotka: (front_path, side_path)
+        self.cached_bounds = None
+        self.cached_paths = None
 
         self.reset()
 
@@ -35,11 +34,79 @@ class VideoAnalyzer:
         self.side_proc = SideProcessor()
         self.last_front_frame = None
         self.last_side_frame = None
+
         self.total_reps = 0
 
         self.mismatch_detected = False
         self.stage_desync_counter = 0
-        self.DESYNC_TOLERANCE_FRAMES = 90
+        # Bardzo rygorystyczny próg desynchronizacji w trakcie ćwiczenia (0.5 sekundy)
+        self.DESYNC_TOLERANCE_FRAMES = 15
+
+    def is_sync_gesture_detected(
+        self, frame, draw_frame=None, perspective="front"
+    ) -> bool:
+        """Bezstanowa funkcja do wykrywania gestu z opcją rysowania szkieletu do debugowania."""
+        if frame is None:
+            return False
+
+        rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+
+        detector = (
+            self.pose_detector_front
+            if perspective == "front"
+            else self.pose_detector_side
+        )
+        res = detector.process(rgb)
+
+        if not res.pose_landmarks:
+            return False
+
+        # --- NOWOŚĆ: Rysowanie szkieletu na ramce podglądu w celach debugowych ---
+        if draw_frame is not None:
+            self.mp_draw.draw_landmarks(
+                draw_frame,
+                res.pose_landmarks,
+                self.mp_pose.POSE_CONNECTIONS,
+            )
+
+        l = res.pose_landmarks.landmark
+
+        # Znajdujemy szczyt głowy
+        head_points = [
+            l[self.mp_pose.PoseLandmark.NOSE],
+            l[self.mp_pose.PoseLandmark.LEFT_EAR],
+            l[self.mp_pose.PoseLandmark.RIGHT_EAR],
+        ]
+
+        valid_head_points = [p.y for p in head_points if p.visibility > 0.4]
+        if not valid_head_points:
+            return False
+
+        head_top_y = min(valid_head_points)
+
+        VIS = 0.65
+
+        r_wrist = l[self.mp_pose.PoseLandmark.RIGHT_WRIST]
+        r_elbow = l[self.mp_pose.PoseLandmark.RIGHT_ELBOW]
+
+        l_wrist = l[self.mp_pose.PoseLandmark.LEFT_WRIST]
+        l_elbow = l[self.mp_pose.PoseLandmark.LEFT_ELBOW]
+
+        r_raised = (
+            r_wrist.visibility > VIS
+            and r_elbow.visibility > VIS
+            and r_wrist.y < head_top_y
+            and r_wrist.y < r_elbow.y
+        )
+
+        l_raised = (
+            l_wrist.visibility > VIS
+            and l_elbow.visibility > VIS
+            and l_wrist.y < head_top_y
+            and l_wrist.y < l_elbow.y
+        )
+
+        return r_raised or l_raised
 
     def queue_frames(self, front_frame=None, side_frame=None):
         if front_frame is not None:
@@ -122,10 +189,6 @@ class VideoAnalyzer:
             "mismatch_detected": self.mismatch_detected,
         }
 
-    # =========================================================================
-    # KLUCZOWA ZMIANA: ZAKLESZCZENIE CAŁEJ LOGIKI PROCESOWANIA I CACHE W JEDNYM MIEJSCU
-    # =========================================================================
-
     def _is_cache_valid(self, front_path, side_path, bounds_tuple) -> bool:
         return (
             self.cached_workout_set is not None
@@ -136,7 +199,6 @@ class VideoAnalyzer:
     def run_fast_background_analysis(
         self, front_path, side_path, f_start=0, f_end=0, s_start=0, s_end=0
     ) -> dict:
-        """Ekspresowo analizuje klatki wideo bezpośrednio w silniku bez renderowania GUI."""
         cap_front = cv.VideoCapture(front_path) if front_path else None
         cap_side = cv.VideoCapture(side_path) if side_path else None
 
@@ -186,23 +248,16 @@ class VideoAnalyzer:
         s_end=0,
         force_reanalyze=False,
     ) -> dict:
-        """Inteligentny getter: zwraca zcache'owaną analizę lub automatycznie uruchamia przetwarzanie."""
         bounds_tuple = (f_start, f_end, s_start, s_end)
 
         if not force_reanalyze and self._is_cache_valid(
             front_path, side_path, bounds_tuple
         ):
-            print(
-                "[VideoAnalyzer Engine] Pobrano zcache'owany WorkoutSet bez dotykania plików wideo."
-            )
             return {
                 "workout_set": self.cached_workout_set,
                 "mismatch": self.mismatch_detected,
             }
 
-        print(
-            "[VideoAnalyzer Engine] Brak cache lub wymuszona reanaliza. Uruchamiam procesor plików..."
-        )
         return self.run_fast_background_analysis(
             front_path, side_path, f_start, f_end, s_start, s_end
         )
@@ -210,7 +265,6 @@ class VideoAnalyzer:
     def compile_and_cache_workout_set(
         self, front_path, side_path, bounds_tuple
     ) -> WorkoutSet:
-        """Kompiluje surowe informacje o błędach z procesorów do obiektów domenowych."""
         info = self.get_current_series_info()
         workout_set = WorkoutSet(location="None", duration=info["total_reps"] * 2)
 
@@ -237,31 +291,3 @@ class VideoAnalyzer:
         self.cached_bounds = bounds_tuple
 
         return workout_set
-
-    def is_hand_raised_front(self) -> bool:
-        """Sprawdza na surowej klatce z przodu, czy nadgarstek jest powyżej ramienia."""
-        if self.last_front_frame is None:
-            return False
-        rgb = cv.cvtColor(self.last_front_frame, cv.COLOR_BGR2RGB)
-        res = self.pose_detector_front.process(rgb)
-        if res.pose_landmarks:
-            l = res.pose_landmarks.landmark
-            return (
-                l[self.mp_pose.PoseLandmark.RIGHT_WRIST].y
-                < l[self.mp_pose.PoseLandmark.RIGHT_SHOULDER].y
-            )
-        return False
-
-    def is_hand_raised_side(self) -> bool:
-        """Sprawdza na surowej klatce z boku, czy nadgarstek jest powyżej ramienia."""
-        if self.last_side_frame is None:
-            return False
-        rgb = cv.cvtColor(self.last_side_frame, cv.COLOR_BGR2RGB)
-        res = self.pose_detector_side.process(rgb)
-        if res.pose_landmarks:
-            l = res.pose_landmarks.landmark
-            return (
-                l[self.mp_pose.PoseLandmark.RIGHT_WRIST].y
-                < l[self.mp_pose.PoseLandmark.RIGHT_SHOULDER].y
-            )
-        return False

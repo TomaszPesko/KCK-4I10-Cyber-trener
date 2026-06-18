@@ -193,9 +193,10 @@ class CreateSetScreen(Screen):
         self.live_thread.start()
 
     def _stop_live_workout(self):
-        if self.live_thread and self.live_thread.isRunning():
-            self.live_thread.stop()
-            self.live_thread.wait()
+        if self.live_thread:
+            if self.live_thread.isRunning():
+                self.live_thread.stop()
+                self.live_thread.wait()
 
             self.compiled_live_set = self.analyzer.compile_and_cache_workout_set(
                 front_path="Live_Cam", side_path="Live_Cam", bounds_tuple=(0, 0, 0, 0)
@@ -207,12 +208,17 @@ class CreateSetScreen(Screen):
             ):
                 self.compiled_live_set = None
                 self.display_stack.setCurrentIndex(0)
-                self.lbl_coach_status.setStyleSheet(
-                    "color: #ffcc00; font-weight: bold;"
-                )
-                self.lbl_coach_status.setText(
-                    "Analiza przerwana przez użytkownika przed synchronizacją."
-                )
+
+                if (
+                    "BŁĄD" not in self.lbl_coach_status.text()
+                    and "Czas minął" not in self.lbl_coach_status.text()
+                ):
+                    self.lbl_coach_status.setStyleSheet(
+                        "color: #ffcc00; font-weight: bold;"
+                    )
+                    self.lbl_coach_status.setText(
+                        "Analiza przerwana przez użytkownika."
+                    )
             else:
                 self.compiled_live_set.location = self.workout_set.location
                 self.compiled_live_set.execution_date = self.workout_set.execution_date
@@ -227,6 +233,8 @@ class CreateSetScreen(Screen):
 
             self._toggle_menu_buttons(enabled=True)
             self._restart_passive_preview()
+
+            self.live_thread = None
 
     def _refresh_local_history_tree(self):
         if not self.compiled_live_set:
