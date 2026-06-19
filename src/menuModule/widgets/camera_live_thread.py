@@ -13,7 +13,7 @@ class CameraLiveThread(QThread):
     status_msg_updated = Signal(str)
 
     # --- STAŁE KONFIGURACYJNE ---
-    REQUIRED_FRAMES_HOLD = 10
+    REQUIRED_FRAMES_HOLD = 15  # 0.5s przy 30fps
     SYNC_TIMEOUT_SECONDS = 5.0
     PREP_TIME_SECONDS = 3.0
     VOICE_COOLDOWN_SECONDS = 5.0
@@ -21,7 +21,7 @@ class CameraLiveThread(QThread):
     # --- STANY ---
     STATE_PREPARATION = "PREPARATION"
     STATE_VERIFY_SILHOUETTE = "VERIFY_SILHOUETTE"
-    STATE_SYNCHRONIZATION = "SYNCHRONIZATION"
+    STATE_SYNCHRONIZATION = "SYNCHRONIZATION"  # Teraz pełni rolę weryfikacji gotowości
     STATE_WORKOUT_ACTIVE = "WORKOUT_ACTIVE"
 
     def __init__(
@@ -58,6 +58,7 @@ class CameraLiveThread(QThread):
 
         self.front_raised_frames = 0
         self.side_raised_frames = 0
+        self.end_gesture_frames = 0  # Licznik do kończenia serii gestem
 
         self.delay_buffer_f = []
         self.delay_buffer_s = []
@@ -121,9 +122,7 @@ class CameraLiveThread(QThread):
         )
 
         if not self.spoken_flags["prep"]:
-            self.voice.speak(
-                "Cześć! Przygotuj się do ćwiczenia. Podejdź do krzesła, trening rozpocznie się za trzy sekundy."
-            )
+            self.voice.speak("Cześć! Przygotuj się do ćwiczenia. Podejdź do krzesła.")
             self.spoken_flags["prep"] = True
 
         if elapsed >= self.PREP_TIME_SECONDS:
@@ -147,23 +146,19 @@ class CameraLiveThread(QThread):
                 "⚠️ BŁĄD: Nie wykryto sylwetki! Stań przed kamerami."
             )
             if now - self.last_voice_time > self.VOICE_COOLDOWN_SECONDS:
-                self.voice.speak("Nie widzę cię w ogóle. Proszę, stań przed krzesłem.")
+                self.voice.speak("Nie widzę cię. Proszę, stań w kadrze.")
                 self.last_voice_time = now
         elif front_lost or side_lost:
             bad_cam = "PRZEDNIEJ" if front_lost else "BOCZNEJ"
-            self.status_msg_updated.emit(
-                f"⚠️ BŁĄD: Brak sylwetki w kamerze {bad_cam}! Odsuń ją."
-            )
+            self.status_msg_updated.emit(f"⚠️ BŁĄD: Brak sylwetki w kamerze {bad_cam}!")
             if now - self.last_voice_time > self.VOICE_COOLDOWN_SECONDS:
                 self.voice.speak(
                     f"W kamerze {bad_cam.lower()} nie widać twojej pełnej sylwetki."
                 )
                 self.last_voice_time = now
         else:
-            if self.has_front and self.has_side:
-                self.current_state = self.STATE_SYNCHRONIZATION
-            else:
-                self.current_state = self.STATE_WORKOUT_ACTIVE
+            # Zawsze przechodzimy do sygnalizacji gotowości (nawet przy 1 kamerze)
+            self.current_state = self.STATE_SYNCHRONIZATION
 
         return display_front, display_side
 
@@ -171,12 +166,12 @@ class CameraLiveThread(QThread):
         self, frame_front, frame_side, display_front, display_side, cap_front, cap_side
     ):
         self.status_msg_updated.emit(
-            "Synchronizacja: Przytrzymaj uniesioną dłoń nad głową..."
+            "Gotowość: Przytrzymaj uniesioną dłoń, aby rozpocząć..."
         )
 
         if not self.spoken_flags["sync_prompt"]:
             self.voice.speak(
-                "Podnieś rękę wysoko nad głowę i przytrzymaj ją nieruchomo."
+                "Podnieś rękę nad głowę, aby zasygnalizować gotowość do ćwiczenia."
             )
             self.spoken_flags["sync_prompt"] = True
 
@@ -188,7 +183,8 @@ class CameraLiveThread(QThread):
                     self.front_raised_frames += 1
                     if self.front_raised_frames >= self.REQUIRED_FRAMES_HOLD:
                         self.front_triggered = True
-                        self.voice.speak("Przód zsynchronizowany.")
+                        msg = "Kamera przednia gotowa." if self.has_side else "Gotowe."
+                        self.voice.speak(msg)
                         if self.first_trigger_time is None:
                             self.first_trigger_time = time.time()
                 else:
@@ -204,7 +200,7 @@ class CameraLiveThread(QThread):
             if self.front_triggered and not self.side_triggered:
                 self.delay_buffer_f.append(frame_front)
                 if display_front is not None:
-                    self._draw_text(display_front, "SYNCHRONIZACJA OK", (0, 255, 0))
+                    self._draw_text(display_front, "GOTOWE", (0, 255, 0))
 
         if self.has_side:
             if not self.side_triggered:
@@ -214,7 +210,8 @@ class CameraLiveThread(QThread):
                     self.side_raised_frames += 1
                     if self.side_raised_frames >= self.REQUIRED_FRAMES_HOLD:
                         self.side_triggered = True
-                        self.voice.speak("Bok zsynchronizowany.")
+                        msg = "Kamera boczna gotowa." if self.has_front else "Gotowe."
+                        self.voice.speak(msg)
                         if self.first_trigger_time is None:
                             self.first_trigger_time = time.time()
                 else:
@@ -230,17 +227,18 @@ class CameraLiveThread(QThread):
             if self.side_triggered and not self.front_triggered:
                 self.delay_buffer_s.append(frame_side)
                 if display_side is not None:
-                    self._draw_text(display_side, "SYNCHRONIZACJA OK", (0, 255, 0))
+                    self._draw_text(display_side, "GOTOWE", (0, 255, 0))
 
+        # Tolerancja na drugą kamerę obowiązuje tylko, gdy faktycznie korzystamy z dwóch
         if self.first_trigger_time is not None and not (
             self.front_triggered and self.side_triggered
         ):
             if (time.time() - self.first_trigger_time) > self.SYNC_TIMEOUT_SECONDS:
                 self.status_msg_updated.emit(
-                    "⚠️ BŁĄD: Przekroczono czas synchronizacji. Trening przerwany!"
+                    "⚠️ BŁĄD: Przekroczono czas oczekiwania. Trening przerwany!"
                 )
                 self.voice.speak(
-                    "Czas minął. Przerywam trening z powodu braku synchronizacji drugiej kamery."
+                    "Czas minął. Przerywam trening z powodu braku gotowości w drugiej kamerze."
                 )
                 self.stop()
                 return display_front, display_side
@@ -252,9 +250,33 @@ class CameraLiveThread(QThread):
 
     def _handle_workout(self, frame_front, frame_side, has_f, has_s):
         if not self.spoken_flags["start"]:
-            self.voice.speak("Trening zsynchronizowany. Możesz rozpocząć serię dipów.")
+            self.voice.speak(
+                "Możesz rozpocząć serię. Aby zakończyć, ponownie podnieś rękę."
+            )
             self.spoken_flags["start"] = True
 
+        # --- WYKRYWANIE GESTU ZAKOŃCZENIA SERII ---
+        end_detected = False
+        if has_f and frame_front is not None:
+            if self.analyzer.is_sync_gesture_detected(frame_front, perspective="front"):
+                end_detected = True
+
+        if has_s and frame_side is not None:
+            if self.analyzer.is_sync_gesture_detected(frame_side, perspective="side"):
+                end_detected = True
+
+        if end_detected:
+            self.end_gesture_frames += 1
+            if self.end_gesture_frames >= self.REQUIRED_FRAMES_HOLD:
+                self.status_msg_updated.emit("Seria zakończona przez użytkownika.")
+                self.voice.speak("Seria zakończona.")
+                self.stop()
+                # Zwracamy None, bo wątek właśnie umiera
+                return None, None
+        else:
+            self.end_gesture_frames = max(0, self.end_gesture_frames - 1)
+
+        # Wyrównywanie opóźnienia z użyciem FIFO
         f_sync = frame_front
         s_sync = frame_side
 
@@ -272,6 +294,7 @@ class CameraLiveThread(QThread):
             else:
                 s_sync = frame_side
 
+        # Przetwarzanie klatki
         self.analyzer.queue_frames(f_sync, s_sync)
         self.analyzer.process_next_synced_step()
         info = self.analyzer.get_current_series_info()
@@ -281,13 +304,14 @@ class CameraLiveThread(QThread):
                 "⚠️ BŁĄD: Klatki rozsynchronizowały się! (Desync)"
             )
             self.voice.speak(
-                "Trening przerwany ze względu na rozsynchronizowanie perspektyw."
+                "Trening przerwany ze względu na techniczne rozsynchronizowanie kamer."
             )
             self.stop()
             return None, None
 
+        # Aktualizacja napisu w UI z instrukcją kończenia
         self.status_msg_updated.emit(
-            f"Trening aktywny! Liczba powtórzeń: {info['total_reps']}"
+            f"Trening aktywny! Liczba powtórzeń: {info['total_reps']} (Podnieś rękę, aby zakończyć)"
         )
 
         if info["total_reps"] > self.last_processed_rep_count:
@@ -308,6 +332,21 @@ class CameraLiveThread(QThread):
         # Wyciąganie klatek podglądu AR prosto z VideoAnalyzera
         display_front = self.analyzer.get_agr_frame("front") if has_f else None
         display_side = self.analyzer.get_agr_frame("side") if has_s else None
+
+        # Rysowanie paska zamykania (jeśli użytkownik podnosi rękę)
+        if self.end_gesture_frames > 0:
+            if display_front is not None:
+                self._draw_text(
+                    display_front,
+                    f"Zamykanie... {self.end_gesture_frames}/{self.REQUIRED_FRAMES_HOLD}",
+                    (0, 0, 255),
+                )
+            if display_side is not None:
+                self._draw_text(
+                    display_side,
+                    f"Zamykanie... {self.end_gesture_frames}/{self.REQUIRED_FRAMES_HOLD}",
+                    (0, 0, 255),
+                )
 
         return display_front, display_side
 
