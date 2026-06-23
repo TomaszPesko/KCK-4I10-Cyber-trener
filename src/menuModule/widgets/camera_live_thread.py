@@ -11,14 +11,13 @@ from src.voiceSynthesisModule.VoiceSynthesizer import VoiceSynthesizer
 class CameraLiveThread(QThread):
     frame_processed = Signal(object, object)
     status_msg_updated = Signal(str)
+    workout_completed = Signal()  # Sygnał informujący GUI o zakończeniu przez gest
 
-    # --- STAŁE KONFIGURACYJNE ---
     REQUIRED_FRAMES_HOLD = 15  # 0.5s przy 30fps
     SYNC_TIMEOUT_SECONDS = 5.0
     PREP_TIME_SECONDS = 3.0
     VOICE_COOLDOWN_SECONDS = 5.0
 
-    # --- STANY ---
     STATE_PREPARATION = "PREPARATION"
     STATE_VERIFY_SILHOUETTE = "VERIFY_SILHOUETTE"
     STATE_SYNCHRONIZATION = "SYNCHRONIZATION"
@@ -58,6 +57,9 @@ class CameraLiveThread(QThread):
         self.front_raised_frames = 0
         self.side_raised_frames = 0
         self.end_gesture_frames = 0
+
+        # Flaga wymuszająca opuszczenie ręki po kalibracji
+        self.hand_lowered_after_sync = False
 
         self.delay_buffer_f = []
         self.delay_buffer_s = []
@@ -113,7 +115,8 @@ class CameraLiveThread(QThread):
 
     def stop(self):
         self._is_running = False
-        self.wait()
+        if self.isRunning():
+            self.wait(1000)
 
     def _handle_preparation(self, display_front, display_side):
         elapsed = time.time() - self.state_start_time
@@ -241,7 +244,6 @@ class CameraLiveThread(QThread):
             self.voice.speak("workout_start")
             self.spoken_flags["start"] = True
 
-        # --- WYKRYWANIE GESTU ZAKOŃCZENIA SERII ---
         end_detected = False
         if has_f and frame_front is not None:
             if self.analyzer.is_sync_gesture_detected(frame_front, perspective="front"):
@@ -251,12 +253,17 @@ class CameraLiveThread(QThread):
             if self.analyzer.is_sync_gesture_detected(frame_side, perspective="side"):
                 end_detected = True
 
-        if end_detected:
+        # Wymagamy opuszczenia dłoni po wejściu do tej fazy
+        if not end_detected:
+            self.hand_lowered_after_sync = True
+
+        if end_detected and self.hand_lowered_after_sync:
             self.end_gesture_frames += 1
             if self.end_gesture_frames >= self.REQUIRED_FRAMES_HOLD:
                 self.status_msg_updated.emit("Trening przerwany / ukończony gestem.")
                 self.voice.speak("workout_end")
-                self.stop()
+                self._is_running = False  # Bezpieczne zakończenie pętli
+                self.workout_completed.emit()  # Emisja bezpiecznego sygnału zamknięcia do GUI
                 return None, None
         else:
             self.end_gesture_frames = max(0, self.end_gesture_frames - 1)

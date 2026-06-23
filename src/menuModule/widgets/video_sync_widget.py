@@ -1,5 +1,3 @@
-# ==> ./menuModule/widgets/video_sync_widget.py <==
-# ==> ./menuModule/widgets/video_sync_widget.py <==
 import cv2 as cv
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage, QPixmap
@@ -15,8 +13,6 @@ from PySide6.QtWidgets import (
 
 
 class VideoSyncWidget(QWidget):
-    """Widżet synchronizacji wideo wyrównany do góry z kontrolą początku i końca serii."""
-
     def __init__(self):
         super().__init__()
         self.front_cap = None
@@ -27,7 +23,6 @@ class VideoSyncWidget(QWidget):
         self._init_ui()
 
     def _init_ui(self):
-        # Wyrównanie całego kontenera głównego do samej góry przestrzeni
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(10)
@@ -40,9 +35,16 @@ class VideoSyncWidget(QWidget):
         title.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(title)
 
-        # Siatka QGridLayout zapewniająca idealne proporcje 50/50 kolumn
         grid_layout = QGridLayout()
         grid_layout.setSpacing(15)
+
+        # --- JAWNY CSS NAPRAWIAJĄCY SUWAKI W WINDOWS ---
+        slider_style = """
+            QSlider::groove:horizontal { border: 1px solid #444; height: 8px; background: #333333; border-radius: 4px; }
+            QSlider::handle:horizontal { background: #00cc66; border: 1px solid #00cc66; width: 14px; margin: -4px 0; border-radius: 7px; }
+            QSlider::add-page:horizontal { background: #333333; }
+            QSlider::sub-page:horizontal { background: #00cc66; border-radius: 4px; }
+        """
 
         # --- PERSPEKTYWA Z PRZODU ---
         front_container = QWidget()
@@ -63,21 +65,29 @@ class VideoSyncWidget(QWidget):
         self.lbl_front_preview.setMinimumHeight(280)
 
         front_controls = QGridLayout()
-        front_controls.addWidget(QLabel("Początek serii:"), 0, 0)
+        lbl_f_start = QLabel("Początek:")
+        lbl_f_start.setStyleSheet("color: white;")
+        front_controls.addWidget(lbl_f_start, 0, 0)
+
         self.slider_front_start = QSlider(Qt.Horizontal)
+        self.slider_front_start.setStyleSheet(slider_style)
         self.slider_front_start.setEnabled(False)
         self.slider_front_start.valueChanged.connect(self._on_front_start_changed)
         front_controls.addWidget(self.slider_front_start, 0, 1)
 
-        front_controls.addWidget(QLabel("Koniec serii:"), 1, 0)
+        lbl_f_end = QLabel("Koniec:")
+        lbl_f_end.setStyleSheet("color: white;")
+        front_controls.addWidget(lbl_f_end, 1, 0)
+
         self.slider_front_end = QSlider(Qt.Horizontal)
+        self.slider_front_end.setStyleSheet(slider_style)
         self.slider_front_end.setEnabled(False)
         self.slider_front_end.valueChanged.connect(self._on_front_end_changed)
         front_controls.addWidget(self.slider_front_end, 1, 1)
 
         front_layout.addWidget(self.lbl_front_title)
         front_layout.addWidget(self.lbl_front_preview)
-        front_layout.addThemeLayout = front_layout.addLayout(front_controls)
+        front_layout.addLayout(front_controls)
 
         # --- PERSPEKTYWA Z BOKU ---
         side_container = QWidget()
@@ -98,14 +108,22 @@ class VideoSyncWidget(QWidget):
         self.lbl_side_preview.setMinimumHeight(280)
 
         side_controls = QGridLayout()
-        side_controls.addWidget(QLabel("Początek serii:"), 0, 0)
+        lbl_s_start = QLabel("Początek:")
+        lbl_s_start.setStyleSheet("color: white;")
+        side_controls.addWidget(lbl_s_start, 0, 0)
+
         self.slider_side_start = QSlider(Qt.Horizontal)
+        self.slider_side_start.setStyleSheet(slider_style)
         self.slider_side_start.setEnabled(False)
         self.slider_side_start.valueChanged.connect(self._on_side_start_changed)
         side_controls.addWidget(self.slider_side_start, 0, 1)
 
-        side_controls.addWidget(QLabel("Koniec serii:"), 1, 0)
+        lbl_s_end = QLabel("Koniec:")
+        lbl_s_end.setStyleSheet("color: white;")
+        side_controls.addWidget(lbl_s_end, 1, 0)
+
         self.slider_side_end = QSlider(Qt.Horizontal)
+        self.slider_side_end.setStyleSheet(slider_style)
         self.slider_side_end.setEnabled(False)
         self.slider_side_end.valueChanged.connect(self._on_side_end_changed)
         side_controls.addWidget(self.slider_side_end, 1, 1)
@@ -114,7 +132,6 @@ class VideoSyncWidget(QWidget):
         side_layout.addWidget(self.lbl_side_preview)
         side_layout.addLayout(side_controls)
 
-        # Montaż kolumn 50/50 w siatce
         grid_layout.addWidget(front_container, 0, 0)
         grid_layout.addWidget(side_container, 0, 1)
         grid_layout.setColumnStretch(0, 1)
@@ -208,8 +225,7 @@ class VideoSyncWidget(QWidget):
             return
         rgb_image = cv.cvtColor(cv_img, cv.COLOR_BGR2RGB)
         h, w, ch = rgb_image.shape
-        bytes_per_line = ch * w
-        q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        q_img = QImage(rgb_image.data, w, h, ch * w, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(q_img).scaled(
             target_w, target_h, Qt.KeepAspectRatio, Qt.SmoothTransformation
         )
@@ -231,7 +247,6 @@ class VideoSyncWidget(QWidget):
         return f_start, f_end, s_start, s_end
 
     def restore_bounds(self, f_start, f_end, s_start, s_end):
-        """Przywraca i blokuje suwaki na pozycjach wybranych przed restartem deskryptorów plików."""
         if self.front_cap:
             self.slider_front_start.setValue(min(f_start, self.front_total_frames - 2))
             self.slider_front_end.setValue(min(f_end, self.front_total_frames - 1))

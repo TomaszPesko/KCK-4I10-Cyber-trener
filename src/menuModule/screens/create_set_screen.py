@@ -34,11 +34,10 @@ from src.videoAnalysisModule.VideoAnalyzer import VideoAnalyzer
 
 
 class CreateSetScreen(Screen, QObject):
-    # Dedykowany, bezpieczny wątkowo sygnał do odpalania z mikrofonu
     start_workout_signal = Signal()
 
     def __init__(self, navigator_cb):
-        QObject.__init__(self)  # Inicjalizacja rdzenia QObject dla obsługi sygnałów
+        QObject.__init__(self)
 
         self.main_container = QWidget()
         main_layout = QVBoxLayout(self.main_container)
@@ -54,12 +53,34 @@ class CreateSetScreen(Screen, QObject):
         self.compiled_live_set = None
         self.workout_set = WorkoutSet(location="Siłownia", duration=45)
 
+        # NAPRAWA STYLÓW WINDOWS: wymuszenie ciemnego tła i kolorów dla elementu i jego listy
+        combo_style = """
+            QComboBox { 
+                background-color: #333333; 
+                color: white; 
+                border: 1px solid #555; 
+                border-radius: 5px; 
+                padding: 5px; 
+            }
+            QComboBox QAbstractItemView { 
+                background-color: #333333; 
+                color: white; 
+                selection-background-color: #00cc66; 
+                selection-color: black;
+                outline: none;
+            }
+            QComboBox::drop-down {
+                border-left: 1px solid #555;
+            }
+        """
+
         camera_options = ["Brak"] + [f"Kamera {i}" for i in range(10)]
         setup_panel = QHBoxLayout()
 
         setup_panel.addWidget(QLabel("Kamera przód:"))
         self.combo_front = QComboBox()
         self.combo_front.addItems(camera_options)
+        self.combo_front.setStyleSheet(combo_style)
         self.combo_front.setCurrentIndex(0)
         self.combo_front.currentIndexChanged.connect(self._restart_passive_preview)
         setup_panel.addWidget(self.combo_front)
@@ -67,6 +88,7 @@ class CreateSetScreen(Screen, QObject):
         setup_panel.addWidget(QLabel("Kamera bok:"))
         self.combo_side = QComboBox()
         self.combo_side.addItems(camera_options)
+        self.combo_side.setStyleSheet(combo_style)
         self.combo_side.setCurrentIndex(0)
         self.combo_side.currentIndexChanged.connect(self._restart_passive_preview)
         setup_panel.addWidget(self.combo_side)
@@ -97,10 +119,9 @@ class CreateSetScreen(Screen, QObject):
         Screen.__init__(self, self.main_container)
         self._build_menu()
 
-        # Podłączenie sygnału głosowego do funkcji startującej w wątku GUI
-        self.start_workout_signal.connect(self._start_live_workout)
+        # Połączenie asynchronicznego komendy z funkcją startującą trening
+        self.start_workout_signal.connect(self._start_live_workout, Qt.QueuedConnection)
 
-        # Inicjalizacja bezpiecznego asynchronicznego wątku mikrofonu
         self.mic_running = True
         threading.Thread(target=self._speech_recognition_worker, daemon=True).start()
 
@@ -122,37 +143,33 @@ class CreateSetScreen(Screen, QObject):
         self.add_option("⬅️ Wróć do menu", self._on_back_clicked)
 
     def _speech_recognition_worker(self):
-        """Wątek monitorujący mikrofon w tle bez blokowania pętli Qt."""
-        recognizer = sr.Recognizer()
+        import speech_recognition as sr
 
-        try:
-            with sr.Microphone() as source:
-                recognizer.adjust_for_ambient_noise(source, duration=0.3)
-        except Exception:
-            print(
-                "[Voice Control Warning] Nie wykryto sprawnego mikrofonu. Sterowanie głosowe wyłączone."
-            )
-            return
+        recognizer = sr.Recognizer()
 
         while self.mic_running:
             if self.live_thread and self.live_thread.isRunning():
                 time.sleep(1.0)
                 continue
+
             try:
                 with sr.Microphone() as source:
+                    recognizer.adjust_for_ambient_noise(source, duration=0.2)
                     audio = recognizer.listen(
-                        source, timeout=3.0, phrase_time_limit=3.0
+                        source, timeout=1.0, phrase_time_limit=2.0
                     )
-                text = recognizer.recognize_google(audio, language="pl-PL").lower()
 
+                text = recognizer.recognize_google(audio, language="pl-PL").lower()
                 if "ćwicz" in text or "cwicz" in text:
                     print("[Voice Control] Wykryto komendę 'ćwicz'!")
-                    # Emisja sygnału - to zrzuci wywołanie _start_live_workout do głównego wątku GUI
                     self.start_workout_signal.emit()
-            except (sr.WaitTimeoutError, sr.UnknownValueError, sr.RequestError):
+                    time.sleep(2.0)
+
+            except (sr.WaitTimeoutError, sr.UnknownValueError):
                 continue
-            except Exception:
-                time.sleep(1.0)
+            except Exception as e:
+                print(f"[Voice Control] Błąd: {e}. Próba restartu...")
+                time.sleep(2.0)
 
     def _get_selected_camera_index(self, combo_box: QComboBox) -> int:
         text = combo_box.currentText()
@@ -232,47 +249,39 @@ class CreateSetScreen(Screen, QObject):
         )
         self.live_thread.frame_processed.connect(self.video_display.update_frames)
         self.live_thread.status_msg_updated.connect(self.lbl_coach_status.setText)
+
+        self.live_thread.workout_completed.connect(
+            self._stop_live_workout, Qt.QueuedConnection
+        )
         self.live_thread.start()
 
+    @Slot()
     def _stop_live_workout(self):
-        if self.live_thread:
-            if self.live_thread.isRunning():
-                self.live_thread.stop()
-                self.live_thread.wait()
+        if not self.live_thread:
+            return
 
-            self.compiled_live_set = self.analyzer.compile_and_cache_workout_set(
-                front_path="Live_Cam", side_path="Live_Cam", bounds_tuple=(0, 0, 0, 0)
+        if self.live_thread.isRunning():
+            self.live_thread.wait(500)
+
+        self.compiled_live_set = self.analyzer.compile_and_cache_workout_set(
+            front_path="Live_Cam", side_path="Live_Cam", bounds_tuple=(0, 0, 0, 0)
+        )
+
+        if not self.compiled_live_set or len(self.compiled_live_set.repetitions) == 0:
+            self.display_stack.setCurrentIndex(0)
+            self.lbl_coach_status.setText("Trening zatrzymany.")
+        else:
+            self.compiled_live_set.location = self.workout_set.location
+            self.compiled_live_set.execution_date = self.workout_set.execution_date
+            self._refresh_local_history_tree()
+            self.display_stack.setCurrentIndex(1)
+            self.lbl_coach_status.setText(
+                f"Seria gotowa! Powtórzeń: {len(self.compiled_live_set.repetitions)}."
             )
 
-            if (
-                not self.compiled_live_set
-                or len(self.compiled_live_set.repetitions) == 0
-            ):
-                self.compiled_live_set = None
-                self.display_stack.setCurrentIndex(0)
-                if (
-                    "BŁĄD" not in self.lbl_coach_status.text()
-                    and "Czas minął" not in self.lbl_coach_status.text()
-                ):
-                    self.lbl_coach_status.setStyleSheet(
-                        "color: #ffcc00; font-weight: bold;"
-                    )
-                    self.lbl_coach_status.setText("Trening zatrzymany.")
-            else:
-                self.compiled_live_set.location = self.workout_set.location
-                self.compiled_live_set.execution_date = self.workout_set.execution_date
-                self._refresh_local_history_tree()
-                self.display_stack.setCurrentIndex(1)
-                self.lbl_coach_status.setStyleSheet(
-                    "color: #00cc66; font-weight: bold;"
-                )
-                self.lbl_coach_status.setText(
-                    f"Seria gotowa! Powtórzeń: {len(self.compiled_live_set.repetitions)}. Zapisz wynik."
-                )
-
-            self._toggle_menu_buttons(enabled=True)
-            self._restart_passive_preview()
-            self.live_thread = None
+        self.live_thread = None
+        self._toggle_menu_buttons(enabled=True)
+        self._restart_passive_preview()
 
     def _refresh_local_history_tree(self):
         if not self.compiled_live_set:
