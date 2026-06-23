@@ -1,7 +1,7 @@
-# ==> ./menuModule/menu.py <==
+import os
 import sys
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -16,25 +16,43 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from src.voiceSynthesisModule.VoiceSynthesizer import VoiceSynthesizer
+
+
+class HoverSoundButton(QPushButton):
+    """Przycisk rozszerzony o natywne przechwytywanie zdarzenia najechania kursorem."""
+
+    def __init__(self, text, voice_instance: VoiceSynthesizer, parent=None):
+        super().__init__(text, parent)
+        self.voice = voice_instance
+
+    def enterEvent(self, event):
+        """Wywoływane automatycznie, gdy myszka wkracza na obszar przycisku."""
+        if self.isEnabled():
+            self.voice.play_hover_sound()
+        super().enterEvent(event)
+
 
 class Screen:
-    """Klasa reprezentująca pojedynczy ekran aplikacji (Menu + Zawartość)."""
-
     def __init__(self, content_widget: QWidget):
         self.content_widget = content_widget
-        self.options = []  # Lista krotek: (tekst_przycisku, funkcja_callback)
+        self.options = []
 
     def add_option(self, text: str, callback):
-        """Dodaje opcję do lewego menu dla tego konkretnego ekranu."""
         self.options.append((text, callback))
 
 
 class AppWindow(QWidget):
-    """Główne okno-szablon działające jako silnik aplikacji z zablokowanym podziałem."""
-
-    def __init__(self, title="Aplikacja", bg_image_path="gui_background.jpeg"):
+    def __init__(self, title="Aplikacja", bg_image_path=None):
         super().__init__()
         self.setWindowTitle(title)
+
+        if bg_image_path is None:
+            bg_image_path = os.path.join(
+                os.getcwd(), "resources", "gui_background.jpeg"
+            )
+
+        self.voice = VoiceSynthesizer()
 
         screen_geom = QApplication.primaryScreen().geometry()
         self.resize(int(screen_geom.width() * 0.8), int(screen_geom.height() * 0.8))
@@ -42,17 +60,17 @@ class AppWindow(QWidget):
 
         self._screens = {}
 
-        # ===== BACKGROUND =====
         self.bg_label = QLabel(self)
         self.bg_label.setScaledContents(True)
         if bg_image_path:
             self.bg_label.setPixmap(QPixmap(bg_image_path))
+        else:
+            print(f"[Warning] Nie znaleziono tła pod ścieżką: {bg_image_path}")
 
         blur = QGraphicsBlurEffect()
         blur.setBlurRadius(20)
         self.bg_label.setGraphicsEffect(blur)
 
-        # ===== ROOT CONTAINER =====
         self.main_container = QWidget(self)
         root_layout = QHBoxLayout(self.main_container)
         root_layout.setContentsMargins(0, 0, 0, 0)
@@ -61,9 +79,6 @@ class AppWindow(QWidget):
         self.split_layout.setSpacing(10)
         root_layout.addLayout(self.split_layout)
 
-        # ======================
-        # LEFT MENU (Stacked)
-        # ======================
         self.menu_wrapper = QWidget()
         self.menu_wrapper.setMinimumWidth(220)
         self.menu_wrapper.setMaximumWidth(380)
@@ -72,9 +87,6 @@ class AppWindow(QWidget):
         self.menu_stack = QStackedWidget()
         self.wrapper_layout.addWidget(self.menu_stack, alignment=Qt.AlignTop)
 
-        # ======================
-        # RIGHT CONTENT (Stacked)
-        # ======================
         self.content_frame = QFrame()
         self.content_frame.setObjectName("contentArea")
 
@@ -114,10 +126,8 @@ class AppWindow(QWidget):
     def resizeEvent(self, event):
         self.bg_label.setGeometry(self.rect())
         self.main_container.setGeometry(self.rect())
-
         w, h = self.width(), self.height()
         pad_w, pad_h = int(w * 0.02), int(h * 0.03)
-
         self.wrapper_layout.setContentsMargins(pad_w, pad_h, pad_w, pad_h)
         self.split_layout.setContentsMargins(pad_w, pad_h, pad_w, pad_h)
 
@@ -125,11 +135,9 @@ class AppWindow(QWidget):
             card = self.menu_stack.widget(i)
             if card and card.layout():
                 card.layout().setContentsMargins(pad_w, pad_h, pad_w, pad_h)
-
         super().resizeEvent(event)
 
     def register_screen(self, name: str, screen: Screen):
-        """Rejestruje nowy ekran w aplikacji."""
         menu_card = QFrame()
         menu_card.setObjectName("menuCard")
         menu_card.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
@@ -138,7 +146,8 @@ class AppWindow(QWidget):
         card_layout.setSpacing(8)
 
         for text, callback in screen.options:
-            btn = QPushButton(text)
+            # Użycie nowego typu przycisku z obsługą dźwięku Hover
+            btn = HoverSoundButton(text, self.voice)
             btn.clicked.connect(callback)
             card_layout.addWidget(btn)
 
@@ -147,16 +156,12 @@ class AppWindow(QWidget):
         self._screens[name] = self.menu_stack.count() - 1
 
     def switch_to_screen(self, name: str):
-        """Zmienia aktualnie wyświetlany ekran."""
         if name in self._screens:
             idx = self._screens[name]
             self.menu_stack.setCurrentIndex(idx)
             self.content_stack.setCurrentIndex(idx)
-        else:
-            print(f"Błąd: Ekran o nazwie '{name}' nie istnieje.")
 
     def refresh_screen_menu(self, name: str, screen: Screen):
-        """Usuwa stare przyciski z menu_card danego ekranu i generuje je na nowo."""
         if name in self._screens:
             idx = self._screens[name]
             menu_card = self.menu_stack.widget(idx)
@@ -170,6 +175,6 @@ class AppWindow(QWidget):
                         widget.deleteLater()
 
                 for text, callback in screen.options:
-                    btn = QPushButton(text)
+                    btn = HoverSoundButton(text, self.voice)
                     btn.clicked.connect(callback)
                     layout.addWidget(btn)

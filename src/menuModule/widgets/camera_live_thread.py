@@ -80,6 +80,8 @@ class CameraLiveThread(QThread):
                 display_front, display_side = self._handle_preparation(
                     display_front, display_side
                 )
+                self.front_raised_frames = 0
+                self.side_raised_frames = 0
 
             elif self.current_state == self.STATE_VERIFY_SILHOUETTE:
                 display_front, display_side = self._handle_verification(

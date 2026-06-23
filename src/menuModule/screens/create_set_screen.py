@@ -1,10 +1,14 @@
 import os
+import threading
+import time
 
 import cv2 as cv
-from PySide6.QtCore import QDateTime, Qt
+import speech_recognition as sr
+from PySide6.QtCore import QDateTime, QObject, Qt, Signal, Slot
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
+    QFileDialog,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -29,8 +33,13 @@ from src.menuModule.widgets.video_player import VideoDisplayWidget
 from src.videoAnalysisModule.VideoAnalyzer import VideoAnalyzer
 
 
-class CreateSetScreen(Screen):
+class CreateSetScreen(Screen, QObject):
+    # Dedykowany, bezpieczny wątkowo sygnał do odpalania z mikrofonu
+    start_workout_signal = Signal()
+
     def __init__(self, navigator_cb):
+        QObject.__init__(self)  # Inicjalizacja rdzenia QObject dla obsługi sygnałów
+
         self.main_container = QWidget()
         main_layout = QVBoxLayout(self.main_container)
         main_layout.setContentsMargins(15, 15, 15, 15)
@@ -65,10 +74,10 @@ class CreateSetScreen(Screen):
         main_layout.addLayout(setup_panel)
 
         self.lbl_coach_status = QLabel(
-            "Wybierz źródło wideo z list powyżej, aby uruchomić podgląd kamer."
+            "Wybierz kamerę, aby włączyć podgląd... Możesz też powiedzieć 'ćwicz'!"
         )
         self.lbl_coach_status.setStyleSheet(
-            "color: #ffcc00; font-size: 14px; font-weight: bold; margin-top: 5px; margin-bottom: 5px;"
+            "color: #ffcc00; font-size: 14px; font-weight: bold; margin: 5px;"
         )
         self.lbl_coach_status.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(self.lbl_coach_status)
@@ -85,8 +94,15 @@ class CreateSetScreen(Screen):
         self.display_stack.setFixedHeight(380)
         self.display_stack.setCurrentIndex(0)
 
-        super().__init__(self.main_container)
+        Screen.__init__(self, self.main_container)
         self._build_menu()
+
+        # Podłączenie sygnału głosowego do funkcji startującej w wątku GUI
+        self.start_workout_signal.connect(self._start_live_workout)
+
+        # Inicjalizacja bezpiecznego asynchronicznego wątku mikrofonu
+        self.mic_running = True
+        threading.Thread(target=self._speech_recognition_worker, daemon=True).start()
 
     def _build_menu(self):
         self.options.clear()
@@ -105,6 +121,39 @@ class CreateSetScreen(Screen):
         )
         self.add_option("⬅️ Wróć do menu", self._on_back_clicked)
 
+    def _speech_recognition_worker(self):
+        """Wątek monitorujący mikrofon w tle bez blokowania pętli Qt."""
+        recognizer = sr.Recognizer()
+
+        try:
+            with sr.Microphone() as source:
+                recognizer.adjust_for_ambient_noise(source, duration=0.3)
+        except Exception:
+            print(
+                "[Voice Control Warning] Nie wykryto sprawnego mikrofonu. Sterowanie głosowe wyłączone."
+            )
+            return
+
+        while self.mic_running:
+            if self.live_thread and self.live_thread.isRunning():
+                time.sleep(1.0)
+                continue
+            try:
+                with sr.Microphone() as source:
+                    audio = recognizer.listen(
+                        source, timeout=3.0, phrase_time_limit=3.0
+                    )
+                text = recognizer.recognize_google(audio, language="pl-PL").lower()
+
+                if "ćwicz" in text or "cwicz" in text:
+                    print("[Voice Control] Wykryto komendę 'ćwicz'!")
+                    # Emisja sygnału - to zrzuci wywołanie _start_live_workout do głównego wątku GUI
+                    self.start_workout_signal.emit()
+            except (sr.WaitTimeoutError, sr.UnknownValueError, sr.RequestError):
+                continue
+            except Exception:
+                time.sleep(1.0)
+
     def _get_selected_camera_index(self, combo_box: QComboBox) -> int:
         text = combo_box.currentText()
         if text == "Brak":
@@ -115,7 +164,7 @@ class CreateSetScreen(Screen):
         text, ok = QInputDialog.getText(
             self.main_container,
             "Modyfikacja serii",
-            "Wpisz lokalizację treningu na żywo:",
+            "Wpisz lokalizację:",
             QLineEdit.Normal,
             self.workout_set.location,
         )
@@ -132,42 +181,35 @@ class CreateSetScreen(Screen):
     def _restart_passive_preview(self):
         if self.live_thread and self.live_thread.isRunning():
             return
-
         if self.preview_thread and self.preview_thread.isRunning():
             self.preview_thread.stop()
             self.preview_thread = None
 
         front_idx = self._get_selected_camera_index(self.combo_front)
         side_idx = self._get_selected_camera_index(self.combo_side)
-
         has_front = front_idx != -1
         has_side = side_idx != -1
 
         self.video_display.set_modes(has_front, has_side)
-
         if not has_front and not has_side:
             self.video_display.clear_views()
             return
 
         self.preview_thread = CameraPreviewThread(
-            front_idx,
-            side_idx,
-            has_front,
-            has_side,
+            front_idx, side_idx, has_front, has_side
         )
         self.preview_thread.frame_processed.connect(self.video_display.update_frames)
         self.preview_thread.start()
 
+    @Slot()
     def _start_live_workout(self):
         if self.live_thread and self.live_thread.isRunning():
             return
-
         if self.preview_thread and self.preview_thread.isRunning():
             self.preview_thread.stop()
 
         front_idx = self._get_selected_camera_index(self.combo_front)
         side_idx = self._get_selected_camera_index(self.combo_side)
-
         has_front = front_idx != -1
         has_side = side_idx != -1
 
@@ -208,7 +250,6 @@ class CreateSetScreen(Screen):
             ):
                 self.compiled_live_set = None
                 self.display_stack.setCurrentIndex(0)
-
                 if (
                     "BŁĄD" not in self.lbl_coach_status.text()
                     and "Czas minął" not in self.lbl_coach_status.text()
@@ -216,9 +257,7 @@ class CreateSetScreen(Screen):
                     self.lbl_coach_status.setStyleSheet(
                         "color: #ffcc00; font-weight: bold;"
                     )
-                    self.lbl_coach_status.setText(
-                        "Analiza przerwana przez użytkownika."
-                    )
+                    self.lbl_coach_status.setText("Trening zatrzymany.")
             else:
                 self.compiled_live_set.location = self.workout_set.location
                 self.compiled_live_set.execution_date = self.workout_set.execution_date
@@ -228,20 +267,17 @@ class CreateSetScreen(Screen):
                     "color: #00cc66; font-weight: bold;"
                 )
                 self.lbl_coach_status.setText(
-                    f"Trening zakończony! Suma powtórzeń: {len(self.compiled_live_set.repetitions)}. Możesz teraz zapisać serię."
+                    f"Seria gotowa! Powtórzeń: {len(self.compiled_live_set.repetitions)}. Zapisz wynik."
                 )
 
             self._toggle_menu_buttons(enabled=True)
             self._restart_passive_preview()
-
             self.live_thread = None
 
     def _refresh_local_history_tree(self):
         if not self.compiled_live_set:
             return
-
         total, correct, faulty = self.compiled_live_set.summarize_set()
-
         mapped_reps = []
         for r in self.compiled_live_set.repetitions:
             mapped_reps.append(
@@ -270,19 +306,12 @@ class CreateSetScreen(Screen):
     def _save_set_to_database(self):
         if not self.compiled_live_set:
             QMessageBox.warning(
-                self.main_container,
-                "Zapis przerwany",
-                "Brak danych serii. Uruchom i zatrzymaj trening, aby przechwycić powtórzenia.",
+                self.main_container, "Zapis przerwany", "Brak danych serii."
             )
             return
 
-        from PySide6.QtWidgets import QFileDialog
-
         db_path, _ = QFileDialog.getSaveFileName(
-            self.main_container,
-            "Wybierz lub utwórz plik bazy danych SQLite",
-            "",
-            "Bazy danych (*.db *.sqlite)",
+            self.main_container, "Zapisz do bazy", "", "Bazy danych (*.db *.sqlite)"
         )
         if not db_path:
             return
@@ -290,27 +319,16 @@ class CreateSetScreen(Screen):
         window = self.main_container.window()
         if window and hasattr(window, "db_module"):
             window.db_module.db_path = db_path
-
             if hasattr(window, "_ensure_db_thread_is_alive"):
                 window._ensure_db_thread_is_alive(db_path)
-
             self.compiled_live_set.location = self.workout_set.location
             self.compiled_live_set.execution_date = self.workout_set.execution_date
-
             window.db_module.request_set_save(self.compiled_live_set)
-
             QMessageBox.information(
-                self.main_container,
-                "Sukces",
-                f"Seria treningowa została pomyślnie dopisana do bazy danych:\n{os.path.basename(db_path)}",
+                self.main_container, "Sukces", "Zapisano pomyślnie."
             )
-
             self.compiled_live_set = None
             self.display_stack.setCurrentIndex(0)
-            self.lbl_coach_status.setStyleSheet("color: #ffcc00; font-weight: bold;")
-            self.lbl_coach_status.setText(
-                "Zapisano pomyślnie. Skonfiguruj kamery dla nowej serii."
-            )
             self._restart_passive_preview()
 
     def _toggle_menu_buttons(self, enabled: bool):
@@ -327,12 +345,12 @@ class CreateSetScreen(Screen):
                         btn.setEnabled(enabled)
 
     def _on_back_clicked(self):
+        self.mic_running = False
         if self.preview_thread and self.preview_thread.isRunning():
             self.preview_thread.stop()
         if self.live_thread and self.live_thread.isRunning():
             self.live_thread.stop()
             self.live_thread.wait()
-
         self.compiled_live_set = None
         self.display_stack.setCurrentIndex(0)
         self.navigator_cb("main_page")
