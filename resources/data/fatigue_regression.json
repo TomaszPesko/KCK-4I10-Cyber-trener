@@ -1,0 +1,4002 @@
+[
+  {
+    "metadata": {
+      "date": "2026-02-13 16:41:00",
+      "location": "Park",
+      "duration_seconds": 43
+    },
+    "repetitions": [
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.0,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.9,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-02-17 12:18:00",
+      "location": "Gym",
+      "duration_seconds": 44
+    },
+    "repetitions": [
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.4,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.7,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-02-20 13:50:00",
+      "location": "Gym",
+      "duration_seconds": 41
+    },
+    "repetitions": [
+      {
+        "speed": 3.5,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.4,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-02-22 13:39:00",
+      "location": "Home",
+      "duration_seconds": 42
+    },
+    "repetitions": [
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.4,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.7,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-02-26 18:45:00",
+      "location": "Home",
+      "duration_seconds": 44
+    },
+    "repetitions": [
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.6,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 3.6,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-02-28 16:34:00",
+      "location": "Gym",
+      "duration_seconds": 44
+    },
+    "repetitions": [
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.8,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.5,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-03-03 19:03:00",
+      "location": "Home",
+      "duration_seconds": 43
+    },
+    "repetitions": [
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.4,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.8,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-03-06 16:41:00",
+      "location": "Gym",
+      "duration_seconds": 39
+    },
+    "repetitions": [
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.3,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.6,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-03-10 17:42:00",
+      "location": "Home",
+      "duration_seconds": 41
+    },
+    "repetitions": [
+      {
+        "speed": 4.7,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.1,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-03-12 19:53:00",
+      "location": "Park",
+      "duration_seconds": 43
+    },
+    "repetitions": [
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.7,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.8,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-03-16 10:52:00",
+      "location": "Gym",
+      "duration_seconds": 45
+    },
+    "repetitions": [
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.6,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.8,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-03-20 08:28:00",
+      "location": "Park",
+      "duration_seconds": 46
+    },
+    "repetitions": [
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.1,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.2,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-03-24 15:32:00",
+      "location": "Gym",
+      "duration_seconds": 45
+    },
+    "repetitions": [
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.0,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.3,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-03-26 11:47:00",
+      "location": "Gym",
+      "duration_seconds": 37
+    },
+    "repetitions": [
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.4,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.5,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-03-29 08:41:00",
+      "location": "Home",
+      "duration_seconds": 38
+    },
+    "repetitions": [
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.5,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.3,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-04-01 18:12:00",
+      "location": "Home",
+      "duration_seconds": 46
+    },
+    "repetitions": [
+      {
+        "speed": 4.7,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.4,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-04-03 11:14:00",
+      "location": "Gym",
+      "duration_seconds": 41
+    },
+    "repetitions": [
+      {
+        "speed": 4.2,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.6,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-04-06 16:22:00",
+      "location": "Park",
+      "duration_seconds": 37
+    },
+    "repetitions": [
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.4,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.1,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-04-09 18:48:00",
+      "location": "Gym",
+      "duration_seconds": 38
+    },
+    "repetitions": [
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.6,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 4.4,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.0,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-04-12 07:12:00",
+      "location": "Park",
+      "duration_seconds": 34
+    },
+    "repetitions": [
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.5,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.2,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 3.7,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-04-15 19:27:00",
+      "location": "Park",
+      "duration_seconds": 35
+    },
+    "repetitions": [
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.6,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.6,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-04-18 10:16:00",
+      "location": "Gym",
+      "duration_seconds": 35
+    },
+    "repetitions": [
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.8,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.8,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.2,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-04-22 10:24:00",
+      "location": "Gym",
+      "duration_seconds": 29
+    },
+    "repetitions": [
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.2,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.7,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-04-25 08:56:00",
+      "location": "Home",
+      "duration_seconds": 30
+    },
+    "repetitions": [
+      {
+        "speed": 3.9,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.9,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-04-29 07:10:00",
+      "location": "Gym",
+      "duration_seconds": 23
+    },
+    "repetitions": [
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.8,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.2,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-05-02 20:39:00",
+      "location": "Home",
+      "duration_seconds": 34
+    },
+    "repetitions": [
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.0,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.1,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 3.7,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.5,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-05-05 17:00:00",
+      "location": "Park",
+      "duration_seconds": 28
+    },
+    "repetitions": [
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.2,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.5,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-05-07 10:03:00",
+      "location": "Gym",
+      "duration_seconds": 26
+    },
+    "repetitions": [
+      {
+        "speed": 4.0,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.7,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.7,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-05-11 16:37:00",
+      "location": "Gym",
+      "duration_seconds": 22
+    },
+    "repetitions": [
+      {
+        "speed": 4.6,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.9,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.0,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-05-14 20:02:00",
+      "location": "Home",
+      "duration_seconds": 24
+    },
+    "repetitions": [
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.3,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.0,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-05-16 09:27:00",
+      "location": "Park",
+      "duration_seconds": 25
+    },
+    "repetitions": [
+      {
+        "speed": 2.5,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.1,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 4.4,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 4.7,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-05-18 07:31:00",
+      "location": "Home",
+      "duration_seconds": 21
+    },
+    "repetitions": [
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.8,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.5,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-05-22 21:29:00",
+      "location": "Home",
+      "duration_seconds": 21
+    },
+    "repetitions": [
+      {
+        "speed": 4.2,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 4.2,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.3,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-05-24 07:44:00",
+      "location": "Park",
+      "duration_seconds": 30
+    },
+    "repetitions": [
+      {
+        "speed": 3.8,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.3,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.6,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.3,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": true,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.3,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-05-28 11:17:00",
+      "location": "Gym",
+      "duration_seconds": 23
+    },
+    "repetitions": [
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.0,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 3.3,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.3,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-05-31 18:40:00",
+      "location": "Home",
+      "duration_seconds": 26
+    },
+    "repetitions": [
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.3,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 4.3,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.1,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.8,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-06-03 08:26:00",
+      "location": "Gym",
+      "duration_seconds": 21
+    },
+    "repetitions": [
+      {
+        "speed": 2.2,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.1,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.5,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.9,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 4.0,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-06-07 15:30:00",
+      "location": "Home",
+      "duration_seconds": 26
+    },
+    "repetitions": [
+      {
+        "speed": 3.5,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.4,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.2,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 4.1,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.7,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": true
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-06-10 07:03:00",
+      "location": "Park",
+      "duration_seconds": 24
+    },
+    "repetitions": [
+      {
+        "speed": 2.8,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.3,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.4,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 4.2,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": true
+        }
+      },
+      {
+        "speed": 3.5,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  },
+  {
+    "metadata": {
+      "date": "2026-06-13 07:43:00",
+      "location": "Park",
+      "duration_seconds": 24
+    },
+    "repetitions": [
+      {
+        "speed": 2.6,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 3.6,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": true,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 2.7,
+        "quality": "Correct",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": false,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.1,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      },
+      {
+        "speed": 4.7,
+        "quality": "Faulty",
+        "errors": {
+          "too_narrow": false,
+          "too_wide": false,
+          "legs_bent": true,
+          "bad_torso_angle": false
+        }
+      }
+    ]
+  }
+]
