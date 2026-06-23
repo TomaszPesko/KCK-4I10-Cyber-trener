@@ -19,6 +19,15 @@ from PySide6.QtWidgets import (
 from src.voiceSynthesisModule.VoiceSynthesizer import VoiceSynthesizer
 
 
+def get_resource_path(relative_path):
+    """Zwraca absolutną ścieżkę do zasobów. Kompatybilne z deweloperką i PyInstallerem."""
+    if hasattr(sys, "_MEIPASS"):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+
 class HoverSoundButton(QPushButton):
     """Przycisk rozszerzony o natywne przechwytywanie zdarzenia najechania kursorem."""
 
@@ -48,10 +57,7 @@ class AppWindow(QWidget):
         self.setWindowTitle(title)
 
         if bg_image_path is None:
-            bg_image_path = os.path.join(
-                os.getcwd(), "resources", "gui_background.jpeg"
-            )
-
+            bg_image_path = get_resource_path("resources/gui_background.jpeg")
         self.voice = VoiceSynthesizer()
 
         screen_geom = QApplication.primaryScreen().geometry()

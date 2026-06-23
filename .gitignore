@@ -2,6 +2,7 @@
 *__pycache__/
 *venv/
 *voice_cache/
+*dist/
 
 # LaTeX and document compilation outputs
 *.aux

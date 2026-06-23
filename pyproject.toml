@@ -16,6 +16,7 @@ speechrecognition = "^3.10.4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0" 
+pyinstaller = "^6.21.0"
 
 [tool.poetry.scripts]
 cyber-trener = "src.cyberTrener.cyberTrener:main"

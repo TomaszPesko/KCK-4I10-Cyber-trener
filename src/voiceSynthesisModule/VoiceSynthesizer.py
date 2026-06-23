@@ -1,8 +1,20 @@
 # ==> src/voiceSynthesisModule/VoiceSynthesizer.py <==
 import os
 import queue
+import sys
 import threading
 import time
+
+
+def get_resource_path(relative_path):
+    """Zwraca absolutną ścieżkę do zasobów. Kompatybilne z deweloperką i PyInstallerem."""
+    if hasattr(sys, "_MEIPASS"):
+        # PyInstaller tworzy tymczasowy folder i przechowuje ścieżkę w _MEIPASS
+        base_path = sys._MEIPASS
+    else:
+        # W środowisku deweloperskim używamy folderu wywołania
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 
 class VoiceSynthesizer:
@@ -10,7 +22,7 @@ class VoiceSynthesizer:
         self.speech_queue = queue.Queue()
 
         # Definicja ścieżki do lokalnych zasobów dźwiękowych w katalogu głównym projektu
-        self.sound_dir = os.path.join(os.getcwd(), "resources", "sound")
+        self.sound_dir = get_resource_path("resources/sound")
         os.makedirs(self.sound_dir, exist_ok=True)
 
         threading.Thread(target=self._speech_worker_loop, daemon=True).start()
